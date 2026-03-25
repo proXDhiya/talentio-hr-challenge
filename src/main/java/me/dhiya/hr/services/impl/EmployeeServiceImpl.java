@@ -18,8 +18,10 @@ import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.services.EmployeeService;
 import me.dhiya.hr.domain.CurrencyEntity;
 import me.dhiya.hr.domain.EmployeeEntity;
+import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.Role;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -173,6 +175,23 @@ public class EmployeeServiceImpl implements EmployeeService {
         Optional.ofNullable(request.getManagerId()).ifPresent(mid -> target.setManager(resolveManager(mid)));
 
         return employeeRepository.save(target);
+    }
+
+    @Override
+    @Transactional
+    public EmployeeEntity deactivateEmployee(String id, EmployeeEntity caller) {
+        EmployeeEntity employee = employeeRepository.findByIdNative(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+
+        verifyUpdateAccess(caller, employee);
+
+        if (employee.getStatus() == EmployeeStatus.INACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is already deactivated");
+        }
+
+        employee.setStatus(EmployeeStatus.INACTIVE);
+        employee.setDeletedAt(Instant.now());
+        return employeeRepository.save(employee);
     }
 
     private void verifyUpdateAccess(EmployeeEntity caller, EmployeeEntity target) {

@@ -41,6 +41,13 @@ public final class ApiExamples {
               "timestamp": "2026-03-25T10:00:00Z"
             }""";
 
+    public static final String ALREADY_INACTIVE = """
+            {
+              "message": "Employee is already deactivated",
+              "errors": [],
+              "timestamp": "2026-03-25T10:00:00Z"
+            }""";
+
     public static final String NOT_FOUND = """
             {
               "message": "Employee not found",

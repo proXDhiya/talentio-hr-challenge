@@ -36,4 +36,5 @@ public class EmployeeDto {
     private Integer remainingLeaveDays;
     private EmployeeStatus status;
     private Instant createdAt;
+    private Instant deletedAt;
 }

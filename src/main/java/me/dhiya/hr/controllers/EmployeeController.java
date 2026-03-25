@@ -119,6 +119,43 @@ public class EmployeeController {
                 .build());
     }
 
+    @Operation(summary = "Deactivate employee", description = "Soft deletes an employee by setting status to INACTIVE. HR can only deactivate employees, Manager can deactivate anyone.")
+    @SecurityRequirement(name = "Bearer")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employee deactivated successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = EmployeeResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ApiExamples.UNAUTHORIZED_PROFILE))),
+            @ApiResponse(responseCode = "403", description = "Access denied",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ApiExamples.FORBIDDEN))),
+            @ApiResponse(responseCode = "404", description = "Employee not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ApiExamples.NOT_FOUND))),
+            @ApiResponse(responseCode = "409", description = "Employee already deactivated",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ApiExamples.ALREADY_INACTIVE)))
+    })
+    @DeleteMapping(value = "/{id}", produces = "application/json")
+    public ResponseEntity<EmployeeResponse> deactivateEmployee(
+            @PathVariable String id,
+            @AuthenticationPrincipal EmployeeEntity currentUser
+    ) {
+        EmployeeEntity employee = employeeService.deactivateEmployee(id, currentUser);
+
+        return ResponseEntity.ok(EmployeeResponse.builder()
+                .message("Employee deactivated successfully")
+                .data(EmployeeDto.builder()
+                        .id(employee.getId())
+                        .status(employee.getStatus())
+                        .deletedAt(employee.getDeletedAt())
+                        .build())
+                .timestamp(Instant.now())
+                .build());
+    }
+
     @Operation(summary = "Update employee", description = "Updates employee information. HR can only update employees, Manager can update anyone.")
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({

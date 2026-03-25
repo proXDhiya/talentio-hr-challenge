@@ -14,6 +14,9 @@ import java.util.Optional;
 public interface EmployeeRepository extends CrudRepository<EmployeeEntity, String> {
     Optional<EmployeeEntity> findByEmail(String email);
 
+    @Query(nativeQuery = true, value = "SELECT e.* FROM employees e WHERE e.id = :id")
+    Optional<EmployeeEntity> findByIdNative(@Param("id") String id);
+
     @Query(nativeQuery = true, value = """
             SELECT e.* FROM employees e
             WHERE (:includeInactive = TRUE OR e.status = 'ACTIVE')

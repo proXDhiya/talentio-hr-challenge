@@ -14,7 +14,14 @@ public interface EmployeeService {
     EmployeeEntity getProfile(String employeeId);
     int calculateUsedLeaveDays(EmployeeEntity employee);
     EmployeeEntity createEmployee(CreateEmployeeRequest request, EmployeeEntity createdBy);
-    EmployeePageDto listEmployees(String cursor, int size, boolean includeInactive,
-                                  String department, Role role, String search);
     EmployeeEntity updateEmployee(String id, UpdateEmployeeRequest request, EmployeeEntity caller);
+    EmployeeEntity deactivateEmployee(String id, EmployeeEntity caller);
+    EmployeePageDto listEmployees(
+            String cursor,
+            int size,
+            boolean includeInactive,
+            String department,
+            Role role,
+            String search
+    );
 }
