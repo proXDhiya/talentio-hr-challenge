@@ -24,11 +24,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<CustomApiError> handleValidation(MethodArgumentNotValidException ex) {
         List<CustomFieldError> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map((org.springframework.validation.FieldError e) ->
-                        CustomFieldError.builder()
-                                .field(e.getField())
-                                .message(e.getDefaultMessage())
-                                .build())
+                .map((org.springframework.validation.FieldError e) -> {
+                    String message = e.getCode() != null && e.getCode().startsWith("typeMismatch")
+                            ? "Invalid value for '" + e.getField() + "'"
+                            : e.getDefaultMessage();
+                    return CustomFieldError.builder()
+                            .field(e.getField())
+                            .message(message)
+                            .build();
+                })
                 .toList();
 
         return ResponseEntity.badRequest().body(

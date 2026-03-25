@@ -13,5 +13,5 @@ import lombok.Data;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Schema(name = "EmployeeResponse")
-public class EmployeeResponse extends CustomApiResponse<EmployeeProfileDto> {
+public class EmployeeResponse extends CustomApiResponse<EmployeeDto> {
 }

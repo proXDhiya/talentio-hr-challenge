@@ -41,6 +41,13 @@ public final class ApiExamples {
               "timestamp": "2026-03-25T10:00:00Z"
             }""";
 
+    public static final String NOT_FOUND = """
+            {
+              "message": "Employee not found",
+              "errors": [],
+              "timestamp": "2026-03-25T10:00:00Z"
+            }""";
+
     public static final String EMAIL_CONFLICT = """
             {
               "message": "An employee with this email already exists",

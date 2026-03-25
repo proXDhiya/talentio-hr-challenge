@@ -1,17 +1,16 @@
 package me.dhiya.hr.dto.employee.response;
 
-import me.dhiya.hr.dto.common.CustomApiResponse;
-
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.experimental.SuperBuilder;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.Data;
+import lombok.experimental.SuperBuilder;
+import me.dhiya.hr.dto.common.CustomApiResponse;
 
 @Data
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(name = "CreateEmployeeResponse")
-public class CreateEmployeeResponse extends CustomApiResponse<CreatedEmployeeDto> {
+@Schema(name = "EmployeeListResponse")
+public class EmployeeListResponse extends CustomApiResponse<EmployeePageDto> {
 }

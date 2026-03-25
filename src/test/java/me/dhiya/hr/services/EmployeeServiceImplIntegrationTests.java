@@ -38,7 +38,6 @@ public class EmployeeServiceImplIntegrationTests {
     @Autowired private CurrencyRepository currencyRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
-    // ─── authenticate ────────────────────────────────────────────────────────
 
     @Test
     void authenticateReturnsEmployeeWithValidCredentials() {
@@ -83,7 +82,6 @@ public class EmployeeServiceImplIntegrationTests {
         assertThat(result).isEmpty();
     }
 
-    // ─── setup ───────────────────────────────────────────────────────────────
 
     @Test
     void setupCreatesFirstEmployeeWithManagerRole() {
@@ -130,7 +128,6 @@ public class EmployeeServiceImplIntegrationTests {
                 .hasMessageContaining("Setup has already been completed");
     }
 
-    // ─── getProfile ──────────────────────────────────────────────────────────
 
     @Test
     void getProfileReturnsEmployeeById() {
@@ -153,7 +150,6 @@ public class EmployeeServiceImplIntegrationTests {
                 .hasMessageContaining("Employee not found");
     }
 
-    // ─── calculateUsedLeaveDays ───────────────────────────────────────────────
 
     @Test
     void calculateUsedLeaveDaysReturnsZeroWhenNoLeaves() {
@@ -236,7 +232,6 @@ public class EmployeeServiceImplIntegrationTests {
         assertThat(result).isEqualTo(5);
     }
 
-    // ─── createEmployee ──────────────────────────────────────────────────────
 
     @Test
     void createEmployeeSavesEmployeeWithCorrectFields() {
@@ -319,7 +314,6 @@ public class EmployeeServiceImplIntegrationTests {
                 .hasMessageContaining("Currency not found: XYZ");
     }
 
-    // ─── helpers ─────────────────────────────────────────────────────────────
 
     private EmployeeEntity savedActiveEmployee(LocalDate hireDate) {
         EmployeeEntity employee = TestDataUtil.createEmployee();

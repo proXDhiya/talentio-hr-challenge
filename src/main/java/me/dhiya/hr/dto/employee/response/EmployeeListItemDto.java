@@ -6,11 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import me.dhiya.hr.domain.enums.EmployeeStatus;
-import me.dhiya.hr.domain.enums.Role;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 
 @Data
@@ -18,22 +14,16 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(name = "Employee")
-public class EmployeeDto {
+@Schema(name = "EmployeeListItem")
+public class EmployeeListItemDto {
     private String id;
     private String firstName;
     private String lastName;
     private String email;
-    private Role role;
+    private String role;
     private String department;
     private String position;
-    private BigDecimal salary;
-    private CurrencyDto currency;
-    private ManagerDto manager;
+    private String status;
     private LocalDate hireDate;
-    private Integer annualLeaveDays;
-    private Integer usedLeaveDays;
-    private Integer remainingLeaveDays;
-    private EmployeeStatus status;
-    private Instant createdAt;
+    private ManagerDto manager;
 }
