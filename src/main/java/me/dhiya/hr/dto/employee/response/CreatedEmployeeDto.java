@@ -1,23 +1,24 @@
-package me.dhiya.hr.dto.response;
+package me.dhiya.hr.dto.employee.response;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.Role;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Instant;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "EmployeeProfile")
-public class EmployeeProfileDto {
+@Schema(name = "CreatedEmployee")
+public class CreatedEmployeeDto {
     private String id;
     private String firstName;
     private String lastName;
@@ -27,10 +28,9 @@ public class EmployeeProfileDto {
     private String position;
     private BigDecimal salary;
     private CurrencyDto currency;
+    private ManagerDto manager;
     private LocalDate hireDate;
     private Integer annualLeaveDays;
-    private Integer usedLeaveDays;
-    private Integer remainingLeaveDays;
     private EmployeeStatus status;
     private Instant createdAt;
 }

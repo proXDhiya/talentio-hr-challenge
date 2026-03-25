@@ -3,6 +3,7 @@ package me.dhiya.hr.config;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -34,6 +35,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/apis/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/apis/v1/api-docs/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/apis/v1/employees").hasAnyRole("MANAGER", "HR")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
@@ -43,6 +45,13 @@ public class SecurityConfig {
                     response.setContentType("application/json");
                     response.getWriter().write("""
                             {"message":"Authentication required. Please login.","errors":[],"timestamp":"%s"}"""
+                            .formatted(Instant.now()));
+                })
+                .accessDeniedHandler((request, response, e) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("""
+                            {"message":"Access denied.","errors":[],"timestamp":"%s"}"""
                             .formatted(Instant.now()));
                 })
             );

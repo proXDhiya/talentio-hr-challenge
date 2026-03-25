@@ -1,10 +1,13 @@
 package me.dhiya.hr.seed;
 
-import me.dhiya.hr.domain.CurrencyEntity;
-import me.dhiya.hr.repositories.CurrencyRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+import org.jspecify.annotations.NonNull;
+
+import me.dhiya.hr.repositories.CurrencyRepository;
+import me.dhiya.hr.domain.CurrencyEntity;
+
 
 import java.util.List;
 
@@ -18,7 +21,7 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run(@NonNull ApplicationArguments args) {
         if (currencyRepository.count() > 0) return;
 
         currencyRepository.saveAll(List.of(

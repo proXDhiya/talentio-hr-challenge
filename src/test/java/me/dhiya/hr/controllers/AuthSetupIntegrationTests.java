@@ -2,7 +2,7 @@ package me.dhiya.hr.controllers;
 
 import me.dhiya.hr.TestDataUtil;
 import me.dhiya.hr.domain.EmployeeEntity;
-import me.dhiya.hr.dto.request.SetupRequest;
+import me.dhiya.hr.dto.auth.request.SetupRequest;
 import me.dhiya.hr.repositories.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,10 +82,11 @@ public class AuthSetupIntegrationTests {
                                   "firstName": "%s",
                                   "lastName": "%s",
                                   "email": "%s",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
                                 """.formatted(request.getFirstName(), request.getLastName(),
-                                request.getEmail(), request.getPassword())))
+                                request.getEmail(), request.getPassword(), request.getDepartment())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Setup has already been completed"));
     }
@@ -101,9 +102,11 @@ public class AuthSetupIntegrationTests {
                                   "firstName": "%s",
                                   "lastName": "%s",
                                   "email": "not-an-email",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getLastName(), request.getPassword())))
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
@@ -120,9 +123,11 @@ public class AuthSetupIntegrationTests {
                                   "firstName": "%s",
                                   "lastName": "%s",
                                   "email": "user@nodomain",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getLastName(), request.getPassword())))
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
@@ -139,9 +144,11 @@ public class AuthSetupIntegrationTests {
                                   "firstName": "%s",
                                   "lastName": "%s",
                                   "email": "%s",
-                                  "password": "short"
+                                  "password": "short",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getLastName(), request.getEmail())))
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
@@ -159,9 +166,53 @@ public class AuthSetupIntegrationTests {
                                   "firstName": "%s",
                                   "lastName": "%s",
                                   "email": "%s",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getLastName(), request.getEmail(), tooLong)))
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getEmail(), tooLong, request.getDepartment())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors[0].field").value("password"));
+    }
+
+    @Test
+    void setupReturns400WhenPasswordHasNoUppercase() throws Exception {
+        SetupRequest request = TestDataUtil.createSetupRequest();
+
+        mockMvc.perform(post(SETUP_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "%s",
+                                  "lastName": "%s",
+                                  "email": "%s",
+                                  "password": "nouppercase1",
+                                  "department": "%s"
+                                }
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getEmail(), request.getDepartment())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors[0].field").value("password"));
+    }
+
+    @Test
+    void setupReturns400WhenPasswordHasNoNumber() throws Exception {
+        SetupRequest request = TestDataUtil.createSetupRequest();
+
+        mockMvc.perform(post(SETUP_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "%s",
+                                  "lastName": "%s",
+                                  "email": "%s",
+                                  "password": "NoNumberHere!",
+                                  "department": "%s"
+                                }
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
@@ -177,9 +228,11 @@ public class AuthSetupIntegrationTests {
                                 {
                                   "lastName": "%s",
                                   "email": "%s",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getLastName(), request.getEmail(), request.getPassword())))
+                                """.formatted(request.getLastName(), request.getEmail(),
+                                request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("firstName"));
@@ -195,9 +248,11 @@ public class AuthSetupIntegrationTests {
                                 {
                                   "firstName": "%s",
                                   "email": "%s",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getEmail(), request.getPassword())))
+                                """.formatted(request.getFirstName(), request.getEmail(),
+                                request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("lastName"));
@@ -213,9 +268,11 @@ public class AuthSetupIntegrationTests {
                                 {
                                   "firstName": "%s",
                                   "lastName": "%s",
-                                  "password": "%s"
+                                  "password": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getLastName(), request.getPassword())))
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
@@ -231,9 +288,11 @@ public class AuthSetupIntegrationTests {
                                 {
                                   "firstName": "%s",
                                   "lastName": "%s",
-                                  "email": "%s"
+                                  "email": "%s",
+                                  "department": "%s"
                                 }
-                                """.formatted(request.getFirstName(), request.getLastName(), request.getEmail())))
+                                """.formatted(request.getFirstName(), request.getLastName(),
+                                request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));

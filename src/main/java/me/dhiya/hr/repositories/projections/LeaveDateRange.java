@@ -1,4 +1,4 @@
-package me.dhiya.hr.repositories;
+package me.dhiya.hr.repositories.projections;
 
 import java.time.LocalDate;
 

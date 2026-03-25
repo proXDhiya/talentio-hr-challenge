@@ -1,11 +1,13 @@
 package me.dhiya.hr.repositories;
 
-import me.dhiya.hr.domain.LeaveRequestEntity;
-import me.dhiya.hr.domain.enums.LeaveStatus;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import me.dhiya.hr.repositories.projections.LeaveDateRange;
+import me.dhiya.hr.domain.LeaveRequestEntity;
+import me.dhiya.hr.domain.enums.LeaveStatus;
 
 import java.time.LocalDate;
 import java.util.List;

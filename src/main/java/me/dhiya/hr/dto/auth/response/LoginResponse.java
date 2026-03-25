@@ -1,9 +1,11 @@
-package me.dhiya.hr.dto.response;
+package me.dhiya.hr.dto.auth.response;
+
+import me.dhiya.hr.dto.employee.response.EmployeeDto;
 
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
 @Builder

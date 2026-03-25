@@ -34,10 +34,19 @@ public final class ApiExamples {
               "timestamp": "2026-03-25T10:00:00Z"
             }""";
 
-    public static final String INTERNAL_SERVER_ERROR = """
+    public static final String FORBIDDEN = """
             {
-              "message": "An unexpected error occurred. Please try again later.",
+              "message": "Access denied.",
               "errors": [],
+              "timestamp": "2026-03-25T10:00:00Z"
+            }""";
+
+    public static final String EMAIL_CONFLICT = """
+            {
+              "message": "An employee with this email already exists",
+              "errors": [
+                { "field": "email", "message": "Email is already in use" }
+              ],
               "timestamp": "2026-03-25T10:00:00Z"
             }""";
 }

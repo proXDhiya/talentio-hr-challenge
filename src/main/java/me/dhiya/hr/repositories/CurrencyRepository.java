@@ -1,8 +1,9 @@
 package me.dhiya.hr.repositories;
 
-import me.dhiya.hr.domain.CurrencyEntity;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
+
+import me.dhiya.hr.domain.CurrencyEntity;
 
 import java.util.Optional;
 

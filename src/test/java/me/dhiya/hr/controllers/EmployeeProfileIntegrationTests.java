@@ -63,6 +63,7 @@ public class EmployeeProfileIntegrationTests {
                 .andExpect(jsonPath("$.data.usedLeaveDays").value(0))
                 .andExpect(jsonPath("$.data.remainingLeaveDays").value(30))
                 .andExpect(jsonPath("$.data.salary").value(0))
+                .andExpect(jsonPath("$.data.manager").doesNotExist())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 

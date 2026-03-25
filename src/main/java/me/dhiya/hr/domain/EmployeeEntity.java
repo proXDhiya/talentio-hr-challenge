@@ -51,12 +51,16 @@ public class EmployeeEntity {
     private String position;
 
     @Builder.Default
-    @Column(name = "salary", nullable = false, precision = 10, scale = 2, columnDefinition = "DECIMAL(10,2) DEFAULT 0.00")
+    @Column(name = "salary", nullable = false, precision = 10, scale = 2)
     private BigDecimal salary = BigDecimal.ZERO;
 
     @ManyToOne
     @JoinColumn(name = "currency_id")
     private CurrencyEntity currency;
+
+    @ManyToOne
+    @JoinColumn(name = "manager_id")
+    private EmployeeEntity manager;
 
     @Column(name = "hire_date", nullable = false)
     private LocalDate hireDate;

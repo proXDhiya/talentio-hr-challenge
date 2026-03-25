@@ -3,7 +3,7 @@ package me.dhiya.hr;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.Role;
-import me.dhiya.hr.dto.request.SetupRequest;
+import me.dhiya.hr.dto.auth.request.SetupRequest;
 
 import java.time.LocalDate;
 import java.util.UUID;

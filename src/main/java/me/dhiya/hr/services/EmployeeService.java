@@ -1,5 +1,6 @@
 package me.dhiya.hr.services;
 
+import me.dhiya.hr.dto.employee.request.CreateEmployeeRequest;
 import me.dhiya.hr.domain.EmployeeEntity;
 
 import java.util.Optional;
@@ -9,4 +10,5 @@ public interface EmployeeService {
     EmployeeEntity setup(EmployeeEntity employee);
     EmployeeEntity getProfile(String employeeId);
     int calculateUsedLeaveDays(EmployeeEntity employee);
+    EmployeeEntity createEmployee(CreateEmployeeRequest request, EmployeeEntity createdBy);
 }
