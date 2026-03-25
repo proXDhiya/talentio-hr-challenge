@@ -1,11 +1,13 @@
 package me.dhiya.hr;
 
+import me.dhiya.hr.domain.CurrencyEntity;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.dto.auth.request.SetupRequest;
 
 import java.time.LocalDate;
+import java.util.Currency;
 import java.util.UUID;
 
 public final class TestDataUtil {
@@ -53,6 +55,14 @@ public final class TestDataUtil {
                 .email(randomEmail())
                 .password(randomPassword())
                 .department(randomString())
+                .build();
+    }
+
+    public static CurrencyEntity createCurrency() {
+        return CurrencyEntity.builder()
+                .name("Algerian Dinar")
+                .code("DZD")
+                .symbol("د.ج")
                 .build();
     }
 }
