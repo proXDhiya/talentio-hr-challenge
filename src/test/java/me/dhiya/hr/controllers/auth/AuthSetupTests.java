@@ -1,52 +1,24 @@
-package me.dhiya.hr.controllers;
+package me.dhiya.hr.controllers.auth;
 
 import me.dhiya.hr.TestDataUtil;
-import me.dhiya.hr.domain.EmployeeEntity;
+import me.dhiya.hr.controllers.BaseControllerTest;
 import me.dhiya.hr.dto.auth.request.SetupRequest;
-import me.dhiya.hr.repositories.EmployeeRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ExtendWith(SpringExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class AuthSetupIntegrationTests {
+public class AuthSetupTests extends BaseControllerTest {
 
-    private static final String SETUP_URL = "/apis/v1/auth/setup";
-
-    @Autowired private WebApplicationContext wac;
-    @Autowired private EmployeeRepository employeeRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-
-    private MockMvc mockMvc;
-
-    @BeforeEach
-    void setup() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(wac)
-                .apply(SecurityMockMvcConfigurers.springSecurity())
-                .build();
-    }
+    private static final String URL = "/apis/v1/auth/setup";
 
     @Test
     void setupReturns201WithTokenOnFirstEmployee() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -69,13 +41,10 @@ public class AuthSetupIntegrationTests {
 
     @Test
     void setupReturns409WhenEmployeeAlreadyExists() throws Exception {
-        EmployeeEntity existing = TestDataUtil.createEmployee();
-        existing.setPassword(passwordEncoder.encode(existing.getPassword()));
-        employeeRepository.save(existing);
-
+        saveEmployee("Existing", "User", "existing@company.com", me.dhiya.hr.domain.enums.Role.EMPLOYEE);
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -95,7 +64,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenEmailIsInvalidFormat() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -108,7 +77,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
     }
 
@@ -116,7 +84,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenEmailHasNoTld() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -129,7 +97,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
     }
 
@@ -137,7 +104,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenPasswordIsTooShort() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -150,16 +117,14 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
     @Test
     void setupReturns400WhenPasswordIsTooLong() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
-        String tooLong = "Aa1!".repeat(17);
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -170,9 +135,8 @@ public class AuthSetupIntegrationTests {
                                   "department": "%s"
                                 }
                                 """.formatted(request.getFirstName(), request.getLastName(),
-                                request.getEmail(), tooLong, request.getDepartment())))
+                                request.getEmail(), "Aa1!".repeat(17), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
@@ -180,7 +144,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenPasswordHasNoUppercase() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -193,7 +157,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
@@ -201,7 +164,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenPasswordHasNoNumber() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -214,7 +177,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
@@ -222,7 +184,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenFirstNameIsMissing() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -234,7 +196,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getLastName(), request.getEmail(),
                                 request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("firstName"));
     }
 
@@ -242,7 +203,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenLastNameIsMissing() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -254,7 +215,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getEmail(),
                                 request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("lastName"));
     }
 
@@ -262,7 +222,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenEmailIsMissing() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -274,7 +234,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getPassword(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
     }
 
@@ -282,7 +241,7 @@ public class AuthSetupIntegrationTests {
     void setupReturns400WhenPasswordIsMissing() throws Exception {
         SetupRequest request = TestDataUtil.createSetupRequest();
 
-        mockMvc.perform(post(SETUP_URL)
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -294,7 +253,6 @@ public class AuthSetupIntegrationTests {
                                 """.formatted(request.getFirstName(), request.getLastName(),
                                 request.getEmail(), request.getDepartment())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 }

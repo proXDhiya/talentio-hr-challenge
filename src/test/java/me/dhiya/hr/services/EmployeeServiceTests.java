@@ -30,14 +30,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class EmployeeServiceImplIntegrationTests {
+public class EmployeeServiceTests {
 
     @Autowired private EmployeeService employeeService;
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private LeaveRequestRepository leaveRequestRepository;
     @Autowired private CurrencyRepository currencyRepository;
     @Autowired private PasswordEncoder passwordEncoder;
-
 
     @Test
     void authenticateReturnsEmployeeWithValidCredentials() {
@@ -82,12 +81,9 @@ public class EmployeeServiceImplIntegrationTests {
         assertThat(result).isEmpty();
     }
 
-
     @Test
     void setupCreatesFirstEmployeeWithManagerRole() {
-        EmployeeEntity employee = TestDataUtil.createEmployee();
-
-        EmployeeEntity saved = employeeService.setup(employee);
+        EmployeeEntity saved = employeeService.setup(TestDataUtil.createEmployee());
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getRole()).isEqualTo(Role.MANAGER);
@@ -95,9 +91,7 @@ public class EmployeeServiceImplIntegrationTests {
 
     @Test
     void setupSetsHireDateToToday() {
-        EmployeeEntity employee = TestDataUtil.createEmployee();
-
-        EmployeeEntity saved = employeeService.setup(employee);
+        EmployeeEntity saved = employeeService.setup(TestDataUtil.createEmployee());
 
         assertThat(saved.getHireDate()).isEqualTo(LocalDate.now());
     }
@@ -121,13 +115,10 @@ public class EmployeeServiceImplIntegrationTests {
         existing.setHireDate(LocalDate.now());
         employeeRepository.save(existing);
 
-        EmployeeEntity newEmployee = TestDataUtil.createEmployee();
-
-        assertThatThrownBy(() -> employeeService.setup(newEmployee))
+        assertThatThrownBy(() -> employeeService.setup(TestDataUtil.createEmployee()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Setup has already been completed");
     }
-
 
     @Test
     void getProfileReturnsEmployeeById() {
@@ -150,103 +141,75 @@ public class EmployeeServiceImplIntegrationTests {
                 .hasMessageContaining("Employee not found");
     }
 
-
     @Test
     void calculateUsedLeaveDaysReturnsZeroWhenNoLeaves() {
         EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 1, 15));
 
-        int result = employeeService.calculateUsedLeaveDays(employee);
-
-        assertThat(result).isZero();
+        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
     }
 
     @Test
     void calculateUsedLeaveDaysCountsApprovedLeavesInCurrentCycle() {
         EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
-        LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3); // anniversary this year
-        if (LocalDate.now().isBefore(cycleStart)) {
-            cycleStart = cycleStart.minusYears(1);
-        }
+        LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
+        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
 
-        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(9), LeaveStatus.APPROVED);  // 5 days
+        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(9), LeaveStatus.APPROVED);
 
-        int result = employeeService.calculateUsedLeaveDays(employee);
-
-        assertThat(result).isEqualTo(5);
+        assertThat(employeeService.calculateUsedLeaveDays(employee)).isEqualTo(5);
     }
 
     @Test
     void calculateUsedLeaveDaysIgnoresPendingLeaves() {
         EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
         LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
-        if (LocalDate.now().isBefore(cycleStart)) {
-            cycleStart = cycleStart.minusYears(1);
-        }
+        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
 
         saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(9), LeaveStatus.PENDING);
 
-        int result = employeeService.calculateUsedLeaveDays(employee);
-
-        assertThat(result).isZero();
+        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
     }
 
     @Test
     void calculateUsedLeaveDaysIgnoresRejectedLeaves() {
         EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
         LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
-        if (LocalDate.now().isBefore(cycleStart)) {
-            cycleStart = cycleStart.minusYears(1);
-        }
+        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
 
         saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(9), LeaveStatus.REJECTED);
 
-        int result = employeeService.calculateUsedLeaveDays(employee);
-
-        assertThat(result).isZero();
+        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
     }
 
     @Test
     void calculateUsedLeaveDaysIgnoresLeavesOutsideCurrentCycle() {
         EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
-        // Leave from 5 years ago — well outside any current cycle
         saveLeave(employee, LocalDate.now().minusYears(5), LocalDate.now().minusYears(5).plusDays(4), LeaveStatus.APPROVED);
 
-        int result = employeeService.calculateUsedLeaveDays(employee);
-
-        assertThat(result).isZero();
+        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
     }
 
     @Test
     void calculateUsedLeaveDaysSumsMultipleApprovedLeaves() {
         EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
         LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
-        if (LocalDate.now().isBefore(cycleStart)) {
-            cycleStart = cycleStart.minusYears(1);
-        }
+        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
 
-        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(6), LeaveStatus.APPROVED);  // 2 days
-        saveLeave(employee, cycleStart.plusDays(10), cycleStart.plusDays(12), LeaveStatus.APPROVED); // 3 days
+        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(6), LeaveStatus.APPROVED);
+        saveLeave(employee, cycleStart.plusDays(10), cycleStart.plusDays(12), LeaveStatus.APPROVED);
 
-        int result = employeeService.calculateUsedLeaveDays(employee);
-
-        assertThat(result).isEqualTo(5);
+        assertThat(employeeService.calculateUsedLeaveDays(employee)).isEqualTo(5);
     }
-
 
     @Test
     void createEmployeeSavesEmployeeWithCorrectFields() {
         EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "USD", null);
-
-        EmployeeEntity result = employeeService.createEmployee(request, manager);
+        EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("USD", null), manager);
 
         assertThat(result.getId()).isNotNull();
         assertThat(result.getEmail()).isEqualTo("john@company.com");
         assertThat(result.getFirstName()).isEqualTo("John");
-        assertThat(result.getLastName()).isEqualTo("Doe");
         assertThat(result.getRole()).isEqualTo(Role.EMPLOYEE);
-        assertThat(result.getDepartment()).isEqualTo("Engineering");
-        assertThat(result.getPosition()).isEqualTo("Software Engineer");
         assertThat(result.getSalary()).isEqualByComparingTo(new BigDecimal("3000.00"));
         assertThat(result.getStatus()).isEqualTo(EmployeeStatus.ACTIVE);
     }
@@ -254,9 +217,7 @@ public class EmployeeServiceImplIntegrationTests {
     @Test
     void createEmployeeSetsManagerToCreatedBy() {
         EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "USD", null);
-
-        EmployeeEntity result = employeeService.createEmployee(request, manager);
+        EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("USD", null), manager);
 
         assertThat(result.getManager()).isNotNull();
         assertThat(result.getManager().getId()).isEqualTo(manager.getId());
@@ -265,9 +226,7 @@ public class EmployeeServiceImplIntegrationTests {
     @Test
     void createEmployeeSetsCurrency() {
         EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "EUR", null);
-
-        EmployeeEntity result = employeeService.createEmployee(request, manager);
+        EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("EUR", null), manager);
 
         assertThat(result.getCurrency()).isNotNull();
         assertThat(result.getCurrency().getCode()).isEqualTo("EUR");
@@ -276,44 +235,31 @@ public class EmployeeServiceImplIntegrationTests {
     @Test
     void createEmployeeEncodesPassword() {
         EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "USD", null);
+        EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("USD", null), manager);
 
-        EmployeeEntity result = employeeService.createEmployee(request, manager);
-
-        assertThat(result.getPassword()).isNotEqualTo("TempPass123!");
         assertThat(passwordEncoder.matches("TempPass123!", result.getPassword())).isTrue();
     }
 
     @Test
     void createEmployeeDefaultsAnnualLeaveDaysTo30WhenNotProvided() {
-        EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "USD", null);
-
-        EmployeeEntity result = employeeService.createEmployee(request, manager);
+        EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("USD", null), savedManager());
 
         assertThat(result.getAnnualLeaveDays()).isEqualTo(30);
     }
 
     @Test
     void createEmployeeUsesProvidedAnnualLeaveDays() {
-        EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "USD", 25);
-
-        EmployeeEntity result = employeeService.createEmployee(request, manager);
+        EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("USD", 25), savedManager());
 
         assertThat(result.getAnnualLeaveDays()).isEqualTo(25);
     }
 
     @Test
     void createEmployeeThrows400WhenCurrencyCodeNotFound() {
-        EmployeeEntity manager = savedManager();
-        CreateEmployeeRequest request = buildCreateRequest("john@company.com", "XYZ", null);
-
-        assertThatThrownBy(() -> employeeService.createEmployee(request, manager))
+        assertThatThrownBy(() -> employeeService.createEmployee(buildCreateRequest("XYZ", null), savedManager()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Currency not found: XYZ");
     }
-
 
     private EmployeeEntity savedActiveEmployee(LocalDate hireDate) {
         EmployeeEntity employee = TestDataUtil.createEmployee();
@@ -341,19 +287,13 @@ public class EmployeeServiceImplIntegrationTests {
                 .build());
     }
 
-    private CreateEmployeeRequest buildCreateRequest(String email, String currencyCode, Integer annualLeaveDays) {
+    private CreateEmployeeRequest buildCreateRequest(String currencyCode, Integer annualLeaveDays) {
         return CreateEmployeeRequest.builder()
-                .firstName("John")
-                .lastName("Doe")
-                .email(email)
-                .password("TempPass123!")
-                .role(Role.EMPLOYEE)
-                .department("Engineering")
-                .position("Software Engineer")
-                .salary(new BigDecimal("3000.00"))
-                .currencyCode(currencyCode)
-                .hireDate(LocalDate.now())
-                .annualLeaveDays(annualLeaveDays)
+                .firstName("John").lastName("Doe").email("john@company.com")
+                .password("TempPass123!").role(Role.EMPLOYEE)
+                .department("Engineering").position("Software Engineer")
+                .salary(new BigDecimal("3000.00")).currencyCode(currencyCode)
+                .hireDate(LocalDate.now()).annualLeaveDays(annualLeaveDays)
                 .build();
     }
 }

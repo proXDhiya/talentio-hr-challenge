@@ -1,24 +1,14 @@
-package me.dhiya.hr.controllers;
+package me.dhiya.hr.controllers.employee;
 
+import me.dhiya.hr.controllers.BaseControllerTest;
 import me.dhiya.hr.domain.CurrencyEntity;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.repositories.CurrencyRepository;
-import me.dhiya.hr.repositories.EmployeeRepository;
-import me.dhiya.hr.services.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,48 +17,30 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ExtendWith(SpringExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class EmployeeGetByIdIntegrationTests {
+public class EmployeeGetByIdTests extends BaseControllerTest {
 
     private static final String URL = "/apis/v1/employees/{id}";
 
-    @Autowired private WebApplicationContext wac;
-    @Autowired private EmployeeRepository employeeRepository;
     @Autowired private CurrencyRepository currencyRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private JwtService jwtService;
 
-    private MockMvc mockMvc;
     private String managerToken;
     private String hrToken;
     private String employeeToken;
     private EmployeeEntity savedManager;
 
     @BeforeEach
-    void setup() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(wac)
-                .apply(SecurityMockMvcConfigurers.springSecurity())
-                .build();
-
-        savedManager = saveEmployee("John", "Doe", "manager@company.com", Role.MANAGER, null);
-        managerToken = jwtService.generateToken(savedManager);
-
-        EmployeeEntity hr = saveEmployee("Jane", "Smith", "hr@company.com", Role.HR, null);
-        hrToken = jwtService.generateToken(hr);
-
-        EmployeeEntity emp = saveEmployee("Bob", "Jones", "bob@company.com", Role.EMPLOYEE, null);
-        employeeToken = jwtService.generateToken(emp);
+    void createUsers() {
+        savedManager = saveEmployee("John", "Doe", "manager@company.com", Role.MANAGER);
+        managerToken = token(savedManager);
+        hrToken = token(saveEmployee("Jane", "Smith", "hr@company.com", Role.HR));
+        employeeToken = token(saveEmployee("Bob", "Jones", "bob@company.com", Role.EMPLOYEE));
     }
-
 
     @Test
     void getEmployeeByIdReturns200WhenCalledByManager() throws Exception {
-        EmployeeEntity target = saveEmployee("Sara", "Ahmed", "sara@company.com", Role.EMPLOYEE, null);
+        EmployeeEntity target = saveEmployee("Sara", "Ahmed", "sara@company.com", Role.EMPLOYEE);
 
-        mockMvc.perform(get(URL, target.getId())
-                        .header("Authorization", "Bearer " + managerToken))
+        mockMvc.perform(get(URL, target.getId()).header("Authorization", "Bearer " + managerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Employee retrieved successfully"))
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
@@ -76,10 +48,9 @@ public class EmployeeGetByIdIntegrationTests {
 
     @Test
     void getEmployeeByIdReturns200WhenCalledByHr() throws Exception {
-        EmployeeEntity target = saveEmployee("Sara", "Ahmed", "sara@company.com", Role.EMPLOYEE, null);
+        EmployeeEntity target = saveEmployee("Sara", "Ahmed", "sara@company.com", Role.EMPLOYEE);
 
-        mockMvc.perform(get(URL, target.getId())
-                        .header("Authorization", "Bearer " + hrToken))
+        mockMvc.perform(get(URL, target.getId()).header("Authorization", "Bearer " + hrToken))
                 .andExpect(status().isOk());
     }
 
@@ -91,12 +62,10 @@ public class EmployeeGetByIdIntegrationTests {
 
     @Test
     void getEmployeeByIdReturns403WhenCalledByEmployee() throws Exception {
-        mockMvc.perform(get(URL, savedManager.getId())
-                        .header("Authorization", "Bearer " + employeeToken))
+        mockMvc.perform(get(URL, savedManager.getId()).header("Authorization", "Bearer " + employeeToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("Access denied."));
     }
-
 
     @Test
     void getEmployeeByIdReturns404WhenEmployeeDoesNotExist() throws Exception {
@@ -110,11 +79,9 @@ public class EmployeeGetByIdIntegrationTests {
     void getEmployeeByIdReturns404WhenEmployeeIsInactive() throws Exception {
         EmployeeEntity inactive = saveEmployee("Ghost", "User", "ghost@company.com", Role.EMPLOYEE, EmployeeStatus.INACTIVE);
 
-        mockMvc.perform(get(URL, inactive.getId())
-                        .header("Authorization", "Bearer " + managerToken))
+        mockMvc.perform(get(URL, inactive.getId()).header("Authorization", "Bearer " + managerToken))
                 .andExpect(status().isNotFound());
     }
-
 
     @Test
     void getEmployeeByIdReturnsAllFields() throws Exception {
@@ -138,8 +105,7 @@ public class EmployeeGetByIdIntegrationTests {
                 .build();
         EmployeeEntity saved = employeeRepository.save(emp);
 
-        mockMvc.perform(get(URL, saved.getId())
-                        .header("Authorization", "Bearer " + managerToken))
+        mockMvc.perform(get(URL, saved.getId()).header("Authorization", "Bearer " + managerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(saved.getId()))
                 .andExpect(jsonPath("$.data.firstName").value("Sara"))
@@ -164,27 +130,10 @@ public class EmployeeGetByIdIntegrationTests {
 
     @Test
     void getEmployeeByIdReturnsNullManagerWhenNoManagerAssigned() throws Exception {
-        EmployeeEntity standalone = saveEmployee("Solo", "Dev", "solo@company.com", Role.EMPLOYEE, null);
+        EmployeeEntity standalone = saveEmployee("Solo", "Dev", "solo@company.com", Role.EMPLOYEE);
 
-        mockMvc.perform(get(URL, standalone.getId())
-                        .header("Authorization", "Bearer " + managerToken))
+        mockMvc.perform(get(URL, standalone.getId()).header("Authorization", "Bearer " + managerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.manager").doesNotExist());
-    }
-
-
-    private EmployeeEntity saveEmployee(String firstName, String lastName, String email,
-                                        Role role, EmployeeStatus status) {
-        EmployeeEntity employee = EmployeeEntity.builder()
-                .firstName(firstName)
-                .lastName(lastName)
-                .email(email)
-                .password(passwordEncoder.encode("Pass123!"))
-                .role(role)
-                .department("Engineering")
-                .hireDate(LocalDate.now())
-                .status(status != null ? status : EmployeeStatus.ACTIVE)
-                .build();
-        return employeeRepository.save(employee);
     }
 }

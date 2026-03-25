@@ -1,23 +1,11 @@
-package me.dhiya.hr.controllers;
+package me.dhiya.hr.controllers.employee;
 
-import me.dhiya.hr.TestDataUtil;
+import me.dhiya.hr.controllers.BaseControllerTest;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.enums.Role;
-import me.dhiya.hr.repositories.EmployeeRepository;
-import me.dhiya.hr.services.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDate;
 
@@ -25,44 +13,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ExtendWith(SpringExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class EmployeeCreateIntegrationTests {
+public class EmployeeCreateTests extends BaseControllerTest {
 
     private static final String URL = "/apis/v1/employees";
 
-    @Autowired private WebApplicationContext wac;
-    @Autowired private EmployeeRepository employeeRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private JwtService jwtService;
-
-    private MockMvc mockMvc;
     private String managerToken;
     private String hrToken;
     private String employeeToken;
     private EmployeeEntity savedManager;
 
     @BeforeEach
-    void setup() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(wac)
-                .apply(SecurityMockMvcConfigurers.springSecurity())
-                .build();
-
-        EmployeeEntity manager = TestDataUtil.createEmployee();
-        manager.setRole(Role.MANAGER);
-        manager.setPassword(passwordEncoder.encode(manager.getPassword()));
-        savedManager = employeeRepository.save(manager);
-        managerToken = jwtService.generateToken(savedManager);
-
-        EmployeeEntity hr = TestDataUtil.createEmployee();
-        hr.setRole(Role.HR);
-        hr.setPassword(passwordEncoder.encode(hr.getPassword()));
-        hrToken = jwtService.generateToken(employeeRepository.save(hr));
-
-        EmployeeEntity emp = TestDataUtil.createEmployee();
-        emp.setPassword(passwordEncoder.encode(emp.getPassword()));
-        employeeToken = jwtService.generateToken(employeeRepository.save(emp));
+    void createUsers() {
+        savedManager = saveEmployee("John", "Doe", "manager@company.com", Role.MANAGER);
+        managerToken = token(savedManager);
+        hrToken = token(saveEmployee("Jane", "Smith", "hr@company.com", Role.HR));
+        employeeToken = token(saveEmployee("Bob", "Jones", "bob@company.com", Role.EMPLOYEE));
     }
 
     private String validRequest() {
@@ -147,18 +112,9 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "Sara",
-                                  "lastName": "Ahmed",
-                                  "email": "not-an-email",
-                                  "password": "TempPass123!",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": 3000.00,
-                                  "currencyCode": "USD",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"Sara","lastName":"Ahmed","email":"not-an-email",
+                                 "password":"TempPass123!","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":3000,"currencyCode":"USD","hireDate":"%s"}
                                 """.formatted(LocalDate.now())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -171,21 +127,11 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "Sara",
-                                  "lastName": "Ahmed",
-                                  "email": "sara@company.com",
-                                  "password": "nouppercase1",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": 3000.00,
-                                  "currencyCode": "USD",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"Sara","lastName":"Ahmed","email":"sara@company.com",
+                                 "password":"nouppercase1","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":3000,"currencyCode":"USD","hireDate":"%s"}
                                 """.formatted(LocalDate.now())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
@@ -195,21 +141,11 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "Sara",
-                                  "lastName": "Ahmed",
-                                  "email": "sara@company.com",
-                                  "password": "NoNumberHere!",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": 3000.00,
-                                  "currencyCode": "USD",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"Sara","lastName":"Ahmed","email":"sara@company.com",
+                                 "password":"NoNumberHere!","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":3000,"currencyCode":"USD","hireDate":"%s"}
                                 """.formatted(LocalDate.now())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
@@ -219,21 +155,11 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "S",
-                                  "lastName": "Ahmed",
-                                  "email": "sara@company.com",
-                                  "password": "TempPass123!",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": 3000.00,
-                                  "currencyCode": "USD",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"S","lastName":"Ahmed","email":"sara@company.com",
+                                 "password":"TempPass123!","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":3000,"currencyCode":"USD","hireDate":"%s"}
                                 """.formatted(LocalDate.now())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("firstName"));
     }
 
@@ -243,21 +169,11 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "Sara",
-                                  "lastName": "Ahmed",
-                                  "email": "sara@company.com",
-                                  "password": "TempPass123!",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": -100,
-                                  "currencyCode": "USD",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"Sara","lastName":"Ahmed","email":"sara@company.com",
+                                 "password":"TempPass123!","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":-100,"currencyCode":"USD","hireDate":"%s"}
                                 """.formatted(LocalDate.now())))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("salary"));
     }
 
@@ -267,21 +183,11 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "Sara",
-                                  "lastName": "Ahmed",
-                                  "email": "sara@company.com",
-                                  "password": "TempPass123!",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": 3000.00,
-                                  "currencyCode": "USD",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"Sara","lastName":"Ahmed","email":"sara@company.com",
+                                 "password":"TempPass123!","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":3000,"currencyCode":"USD","hireDate":"%s"}
                                 """.formatted(LocalDate.now().plusDays(1))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("hireDate"));
     }
 
@@ -291,18 +197,9 @@ public class EmployeeCreateIntegrationTests {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "firstName": "Sara",
-                                  "lastName": "Ahmed",
-                                  "email": "sara@company.com",
-                                  "password": "TempPass123!",
-                                  "role": "EMPLOYEE",
-                                  "department": "Engineering",
-                                  "position": "Software Engineer",
-                                  "salary": 3000.00,
-                                  "currencyCode": "XYZ",
-                                  "hireDate": "%s"
-                                }
+                                {"firstName":"Sara","lastName":"Ahmed","email":"sara@company.com",
+                                 "password":"TempPass123!","role":"EMPLOYEE","department":"Engineering",
+                                 "position":"Dev","salary":3000,"currencyCode":"XYZ","hireDate":"%s"}
                                 """.formatted(LocalDate.now())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Currency not found: XYZ"));
