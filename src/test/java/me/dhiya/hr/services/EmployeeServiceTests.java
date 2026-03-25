@@ -1,17 +1,5 @@
 package me.dhiya.hr.services;
 
-import me.dhiya.hr.TestDataUtil;
-import me.dhiya.hr.domain.EmployeeEntity;
-import me.dhiya.hr.domain.LeaveRequestEntity;
-import me.dhiya.hr.domain.enums.EmployeeStatus;
-import me.dhiya.hr.domain.enums.LeaveStatus;
-import me.dhiya.hr.domain.enums.LeaveType;
-import me.dhiya.hr.domain.enums.Role;
-import me.dhiya.hr.dto.employee.request.CreateEmployeeRequest;
-import me.dhiya.hr.dto.employee.request.UpdateEmployeeRequest;
-import me.dhiya.hr.dto.employee.response.EmployeePageDto;
-import me.dhiya.hr.repositories.EmployeeRepository;
-import me.dhiya.hr.repositories.LeaveRequestRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +8,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.server.ResponseStatusException;
-
+import me.dhiya.hr.TestDataUtil;
+import me.dhiya.hr.domain.EmployeeEntity;
+import me.dhiya.hr.domain.enums.EmployeeStatus;
+import me.dhiya.hr.domain.enums.Role;
+import me.dhiya.hr.dto.employee.request.CreateEmployeeRequest;
+import me.dhiya.hr.dto.employee.request.UpdateEmployeeRequest;
+import me.dhiya.hr.dto.employee.response.EmployeePageDto;
+import me.dhiya.hr.repositories.EmployeeRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -35,7 +29,6 @@ public class EmployeeServiceTests {
 
     @Autowired private EmployeeService employeeService;
     @Autowired private EmployeeRepository employeeRepository;
-    @Autowired private LeaveRequestRepository leaveRequestRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Test
@@ -136,56 +129,6 @@ public class EmployeeServiceTests {
     }
 
     @Test
-    void calculateUsedLeaveDaysReturnsZeroWhenNoLeaves() {
-        EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 1, 15));
-
-        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
-    }
-
-    @Test
-    void calculateUsedLeaveDaysCountsApprovedLeavesInCurrentCycle() {
-        EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
-        LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
-        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
-
-        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(9), LeaveStatus.APPROVED);
-
-        assertThat(employeeService.calculateUsedLeaveDays(employee)).isEqualTo(5);
-    }
-
-    @Test
-    void calculateUsedLeaveDaysIgnoresNonApprovedLeaves() {
-        EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
-        LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
-        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
-
-        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(9), LeaveStatus.PENDING);
-        saveLeave(employee, cycleStart.plusDays(10), cycleStart.plusDays(14), LeaveStatus.REJECTED);
-
-        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
-    }
-
-    @Test
-    void calculateUsedLeaveDaysIgnoresLeavesOutsideCurrentCycle() {
-        EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
-        saveLeave(employee, LocalDate.now().minusYears(5), LocalDate.now().minusYears(5).plusDays(4), LeaveStatus.APPROVED);
-
-        assertThat(employeeService.calculateUsedLeaveDays(employee)).isZero();
-    }
-
-    @Test
-    void calculateUsedLeaveDaysSumsMultipleApprovedLeaves() {
-        EmployeeEntity employee = savedActiveEmployee(LocalDate.of(2020, 3, 1));
-        LocalDate cycleStart = LocalDate.now().withDayOfMonth(1).withMonth(3);
-        if (LocalDate.now().isBefore(cycleStart)) cycleStart = cycleStart.minusYears(1);
-
-        saveLeave(employee, cycleStart.plusDays(5), cycleStart.plusDays(6), LeaveStatus.APPROVED);
-        saveLeave(employee, cycleStart.plusDays(10), cycleStart.plusDays(12), LeaveStatus.APPROVED);
-
-        assertThat(employeeService.calculateUsedLeaveDays(employee)).isEqualTo(5);
-    }
-
-    @Test
     void createEmployeeSavesEmployeeWithCorrectFields() {
         EmployeeEntity manager = savedManager();
         EmployeeEntity result = employeeService.createEmployee(buildCreateRequest("USD", null), manager);
@@ -243,16 +186,6 @@ public class EmployeeServiceTests {
         manager.setRole(Role.MANAGER);
         manager.setHireDate(LocalDate.now());
         return employeeRepository.save(manager);
-    }
-
-    private void saveLeave(EmployeeEntity employee, LocalDate start, LocalDate end, LeaveStatus status) {
-        leaveRequestRepository.save(LeaveRequestEntity.builder()
-                .employee(employee)
-                .startDate(start)
-                .endDate(end)
-                .type(LeaveType.ANNUAL)
-                .status(status)
-                .build());
     }
 
     @Test

@@ -1,17 +1,15 @@
 package me.dhiya.hr.services.impl;
 
-import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-
-import me.dhiya.hr.domain.EmployeeEntity;
+import org.springframework.stereotype.Service;
 import me.dhiya.hr.config.JwtProperties;
+import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.services.JwtPayload;
 import me.dhiya.hr.services.JwtService;
-
-import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
+import javax.crypto.SecretKey;
 
 @Service
 public class JwtServiceImpl implements JwtService {

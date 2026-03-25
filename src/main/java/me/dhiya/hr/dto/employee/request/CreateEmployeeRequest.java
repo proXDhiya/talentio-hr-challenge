@@ -1,14 +1,12 @@
 package me.dhiya.hr.dto.employee.request;
 
-import me.dhiya.hr.util.ValidationConstants;
-import me.dhiya.hr.domain.enums.Role;
-
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
+import me.dhiya.hr.domain.enums.Role;
+import me.dhiya.hr.util.ValidationConstants;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 

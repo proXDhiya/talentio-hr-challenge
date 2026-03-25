@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.dto.employee.request.CreateEmployeeRequest;
 import me.dhiya.hr.dto.employee.request.EmployeeListRequest;
@@ -25,8 +24,8 @@ import me.dhiya.hr.dto.employee.response.EmployeePageDto;
 import me.dhiya.hr.dto.employee.response.EmployeeResponse;
 import me.dhiya.hr.dto.employee.response.ManagerDto;
 import me.dhiya.hr.services.EmployeeService;
+import me.dhiya.hr.services.LeaveRequestService;
 import me.dhiya.hr.util.ApiExamples;
-
 import java.time.Instant;
 
 @RestController
@@ -35,9 +34,11 @@ import java.time.Instant;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final LeaveRequestService leaveRequestService;
 
-    public EmployeeController(EmployeeService employeeService) {
+    public EmployeeController(EmployeeService employeeService, LeaveRequestService leaveRequestService) {
         this.employeeService = employeeService;
+        this.leaveRequestService = leaveRequestService;
     }
 
     @Operation(summary = "List employees", description = "Returns paginated employee list with optional filters. HR and Manager only.")
@@ -89,7 +90,7 @@ public class EmployeeController {
     @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable String id) {
         EmployeeEntity employee = employeeService.getProfile(id);
-        int usedDays = employeeService.calculateUsedLeaveDays(employee);
+        int usedDays = leaveRequestService.calculateUsedLeaveDays(employee);
 
         return ResponseEntity.ok(EmployeeResponse.builder()
                 .message("Employee retrieved successfully")
@@ -110,7 +111,7 @@ public class EmployeeController {
     })
     @GetMapping(value = "/me", produces = "application/json")
     public ResponseEntity<EmployeeResponse> getProfile(@AuthenticationPrincipal EmployeeEntity employee) {
-        int usedDays = employeeService.calculateUsedLeaveDays(employee);
+        int usedDays = leaveRequestService.calculateUsedLeaveDays(employee);
 
         return ResponseEntity.ok(EmployeeResponse.builder()
                 .message("Profile retrieved successfully")

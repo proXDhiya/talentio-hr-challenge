@@ -1,4 +1,4 @@
-package me.dhiya.hr.dto.employee.response;
+package me.dhiya.hr.dto.leave.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -11,6 +11,6 @@ import me.dhiya.hr.dto.common.CustomApiResponse;
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(name = "EmployeeResponse")
-public class EmployeeResponse extends CustomApiResponse<EmployeeDto> {
+@Schema(name = "LeaveRequestResponse")
+public class LeaveRequestResponse extends CustomApiResponse<LeaveRequestDto> {
 }

@@ -1,19 +1,17 @@
 package me.dhiya.hr.exception;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.core.annotation.Order;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.core.Ordered;
-
-import me.dhiya.hr.dto.common.CustomFieldError;
 import me.dhiya.hr.dto.common.CustomApiError;
-
+import me.dhiya.hr.dto.common.CustomFieldError;
 import java.time.Instant;
 import java.util.List;
 
@@ -39,6 +37,16 @@ public class GlobalExceptionHandler {
                 CustomApiError.builder()
                         .message("Validation failed")
                         .errors(errors)
+                        .timestamp(Instant.now())
+                        .build());
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<CustomApiError> handleBusiness(BusinessException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(
+                CustomApiError.builder()
+                        .message(ex.getReason())
+                        .errors(ex.getFields())
                         .timestamp(Instant.now())
                         .build());
     }

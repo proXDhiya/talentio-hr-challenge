@@ -1,14 +1,13 @@
 package me.dhiya.hr.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Bean;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.Setter;
-
-import javax.crypto.SecretKey;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import java.nio.charset.StandardCharsets;
+import javax.crypto.SecretKey;
 
 @Getter
 @Setter

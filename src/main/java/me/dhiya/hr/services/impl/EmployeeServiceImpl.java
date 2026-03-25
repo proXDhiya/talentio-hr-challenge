@@ -1,26 +1,22 @@
 package me.dhiya.hr.services.impl;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.stereotype.Service;
-import org.springframework.http.HttpStatus;
-
+import me.dhiya.hr.domain.CurrencyEntity;
+import me.dhiya.hr.domain.EmployeeEntity;
+import me.dhiya.hr.domain.enums.EmployeeStatus;
+import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.dto.employee.request.CreateEmployeeRequest;
 import me.dhiya.hr.dto.employee.request.UpdateEmployeeRequest;
 import me.dhiya.hr.dto.employee.response.EmployeeListItemDto;
 import me.dhiya.hr.dto.employee.response.EmployeePageDto;
 import me.dhiya.hr.dto.employee.response.ManagerDto;
-import me.dhiya.hr.repositories.LeaveRequestRepository;
 import me.dhiya.hr.repositories.CurrencyRepository;
 import me.dhiya.hr.repositories.EmployeeRepository;
-import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.services.EmployeeService;
-import me.dhiya.hr.domain.CurrencyEntity;
-import me.dhiya.hr.domain.EmployeeEntity;
-import me.dhiya.hr.domain.enums.EmployeeStatus;
-import me.dhiya.hr.domain.enums.Role;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -30,18 +26,15 @@ import java.util.Optional;
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final LeaveRequestRepository leaveRequestRepository;
     private final CurrencyRepository currencyRepository;
     private final PasswordEncoder passwordEncoder;
 
     public EmployeeServiceImpl(
             EmployeeRepository employeeRepository,
-            LeaveRequestRepository leaveRequestRepository,
             CurrencyRepository currencyRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.employeeRepository = employeeRepository;
-        this.leaveRequestRepository = leaveRequestRepository;
         this.currencyRepository = currencyRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -70,18 +63,6 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeeEntity getProfile(String employeeId) {
         return employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public int calculateUsedLeaveDays(EmployeeEntity employee) {
-        LocalDate[] cycle = getCurrentLeaveCycle(employee.getHireDate());
-
-        return leaveRequestRepository
-                .findApprovedLeaveDates(employee.getId(), LeaveStatus.APPROVED, cycle[0], cycle[1])
-                .stream()
-                .mapToInt(r -> (int) (r.getEndDate().toEpochDay() - r.getStartDate().toEpochDay() + 1))
-                .sum();
     }
 
     @Override
@@ -209,16 +190,5 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeEntity resolveManager(String managerId) {
         return employeeRepository.findById(managerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Manager not found"));
-    }
-
-    private LocalDate[] getCurrentLeaveCycle(LocalDate hireDate) {
-        LocalDate today = LocalDate.now();
-        LocalDate thisYearAnniversary = hireDate.withYear(today.getYear());
-
-        if (today.isBefore(thisYearAnniversary)) {
-            return new LocalDate[]{thisYearAnniversary.minusYears(1), thisYearAnniversary.minusDays(1)};
-        } else {
-            return new LocalDate[]{thisYearAnniversary, thisYearAnniversary.plusYears(1).minusDays(1)};
-        }
     }
 }

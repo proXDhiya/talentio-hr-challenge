@@ -63,4 +63,22 @@ public final class ApiExamples {
               ],
               "timestamp": "2026-03-25T10:00:00Z"
             }""";
+
+    public static final String LEAVE_INSUFFICIENT_BALANCE = """
+            {
+              "message": "Insufficient leave balance",
+              "errors": [
+                { "field": "totalDays", "message": "Requested 10 days but only 3 annual leave days remaining" }
+              ],
+              "timestamp": "2026-03-25T10:00:00Z"
+            }""";
+
+    public static final String LEAVE_OVERLAP = """
+            {
+              "message": "You already have a leave request overlapping these dates",
+              "errors": [
+                { "field": "startDate", "message": "Overlaps with existing leave request from 2026-03-30 to 2026-04-03" }
+              ],
+              "timestamp": "2026-03-25T10:00:00Z"
+            }""";
 }

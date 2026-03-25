@@ -1,11 +1,10 @@
 package me.dhiya.hr.controllers.auth;
 
+import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import me.dhiya.hr.TestDataUtil;
 import me.dhiya.hr.controllers.BaseControllerTest;
 import me.dhiya.hr.dto.auth.request.SetupRequest;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;

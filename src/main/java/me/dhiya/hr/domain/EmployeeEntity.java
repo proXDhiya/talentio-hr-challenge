@@ -5,12 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import me.dhiya.hr.domain.enums.EmployeeStatus;
-import me.dhiya.hr.domain.enums.Role;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
-
+import me.dhiya.hr.domain.enums.EmployeeStatus;
+import me.dhiya.hr.domain.enums.Role;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

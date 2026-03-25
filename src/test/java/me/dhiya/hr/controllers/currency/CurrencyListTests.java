@@ -1,10 +1,9 @@
 package me.dhiya.hr.controllers.currency;
 
-import me.dhiya.hr.controllers.BaseControllerTest;
-import me.dhiya.hr.domain.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
+import me.dhiya.hr.controllers.BaseControllerTest;
+import me.dhiya.hr.domain.enums.Role;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;

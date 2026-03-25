@@ -1,13 +1,12 @@
 package me.dhiya.hr.controllers.auth;
 
-import me.dhiya.hr.controllers.BaseControllerTest;
-import org.springframework.http.MediaType;
 import org.junit.jupiter.api.BeforeEach;
-import me.dhiya.hr.domain.enums.Role;
 import org.junit.jupiter.api.Test;
-
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import org.springframework.http.MediaType;
+import me.dhiya.hr.controllers.BaseControllerTest;
+import me.dhiya.hr.domain.enums.Role;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class AuthLoginTests extends BaseControllerTest {

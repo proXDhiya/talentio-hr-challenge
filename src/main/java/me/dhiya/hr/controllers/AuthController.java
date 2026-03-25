@@ -1,29 +1,27 @@
 package me.dhiya.hr.controllers;
 
-import org.springframework.web.server.ResponseStatusException;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Content;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
-
-import me.dhiya.hr.dto.employee.response.EmployeeDto;
-import me.dhiya.hr.dto.auth.response.LoginResponse;
-import me.dhiya.hr.dto.auth.response.AuthResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import me.dhiya.hr.config.JwtProperties;
+import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.dto.auth.request.LoginRequest;
 import me.dhiya.hr.dto.auth.request.SetupRequest;
+import me.dhiya.hr.dto.auth.response.AuthResponse;
+import me.dhiya.hr.dto.auth.response.LoginResponse;
+import me.dhiya.hr.dto.employee.response.EmployeeDto;
+import me.dhiya.hr.mappers.Mapper;
 import me.dhiya.hr.services.EmployeeService;
-import me.dhiya.hr.domain.EmployeeEntity;
-import me.dhiya.hr.config.JwtProperties;
 import me.dhiya.hr.services.JwtService;
 import me.dhiya.hr.util.ApiExamples;
-import me.dhiya.hr.mappers.Mapper;
-
 import java.time.Instant;
 
 @RestController

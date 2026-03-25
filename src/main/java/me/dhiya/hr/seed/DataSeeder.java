@@ -1,14 +1,11 @@
 package me.dhiya.hr.seed;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
-import org.jspecify.annotations.NonNull;
-
-import me.dhiya.hr.repositories.CurrencyRepository;
 import me.dhiya.hr.domain.CurrencyEntity;
-
-
+import me.dhiya.hr.repositories.CurrencyRepository;
 import java.util.List;
 
 @Component

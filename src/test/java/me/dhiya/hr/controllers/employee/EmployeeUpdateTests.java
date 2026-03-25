@@ -1,19 +1,17 @@
 package me.dhiya.hr.controllers.employee;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import me.dhiya.hr.controllers.BaseControllerTest;
 import me.dhiya.hr.domain.CurrencyEntity;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.dto.employee.request.UpdateEmployeeRequest;
 import me.dhiya.hr.repositories.CurrencyRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-
 import java.math.BigDecimal;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;

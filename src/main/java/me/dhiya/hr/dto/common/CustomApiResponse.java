@@ -1,10 +1,9 @@
 package me.dhiya.hr.dto.common;
 
-import lombok.experimental.SuperBuilder;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import java.time.Instant;
 
 @Data
