@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.domain.enums.LeaveType;
 import me.dhiya.hr.dto.employee.response.EmployeeRefDto;
-
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -18,8 +17,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(name = "LeaveRequest")
-public class LeaveRequestDto {
+@Schema(name = "LeaveRequestListItem")
+public class LeaveRequestListItemDto {
     private String id;
     private EmployeeRefDto employee;
     private LocalDate startDate;
@@ -28,5 +27,7 @@ public class LeaveRequestDto {
     private LeaveType type;
     private LeaveStatus status;
     private String reason;
+    private EmployeeRefDto reviewedBy;
+    private String reviewComment;
     private Instant createdAt;
 }

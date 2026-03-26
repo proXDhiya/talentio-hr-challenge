@@ -5,12 +5,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.LeaveRequestEntity;
+import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.domain.enums.LeaveType;
 import me.dhiya.hr.dto.common.CustomFieldError;
+import me.dhiya.hr.dto.employee.response.EmployeeRefDto;
 import me.dhiya.hr.dto.leave.request.CreateLeaveRequest;
+import me.dhiya.hr.dto.leave.response.LeaveRequestListItemDto;
+import me.dhiya.hr.dto.leave.response.LeaveRequestPageDto;
 import me.dhiya.hr.exception.BusinessException;
 import me.dhiya.hr.repositories.LeaveRequestRepository;
+import me.dhiya.hr.repositories.projections.LeaveRequestRow;
 import me.dhiya.hr.services.LeaveRequestService;
 import java.time.LocalDate;
 import java.util.List;
@@ -84,6 +89,57 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 .stream()
                 .mapToInt(r -> (int) (r.getEndDate().toEpochDay() - r.getStartDate().toEpochDay() + 1))
                 .sum();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LeaveRequestPageDto listLeaveRequests(
+            String cursor, int size, String employeeId, EmployeeStatus employeeStatus,
+            LeaveStatus status, LeaveType type, LocalDate fromDate, LocalDate toDate) {
+        List<LeaveRequestRow> results = leaveRequestRepository.findLeaveRequestsPage(
+                employeeId,
+                employeeStatus.name(),
+                status != null ? status.name() : null,
+                type != null ? type.name() : null,
+                fromDate, toDate, cursor, size + 1
+        );
+
+        boolean hasMore = results.size() > size;
+        List<LeaveRequestRow> items = hasMore ? results.subList(0, size) : results;
+        String nextCursor = hasMore ? items.getLast().getId() : null;
+
+        List<LeaveRequestListItemDto> dtos = items.stream().map(r -> {
+            int totalDays = (int) (r.getEndDate().toEpochDay() - r.getStartDate().toEpochDay() + 1);
+            return LeaveRequestListItemDto.builder()
+                    .id(r.getId())
+                    .employee(r.getEmployeeId() != null ? EmployeeRefDto.builder()
+                            .id(r.getEmployeeId())
+                            .firstName(r.getEmployeeFirstName())
+                            .lastName(r.getEmployeeLastName())
+                            .department(r.getEmployeeDepartment())
+                            .build() : null)
+                    .startDate(r.getStartDate())
+                    .endDate(r.getEndDate())
+                    .totalDays(totalDays)
+                    .type(LeaveType.valueOf(r.getType()))
+                    .status(LeaveStatus.valueOf(r.getStatus()))
+                    .reason(r.getReason())
+                    .reviewedBy(r.getReviewedById() != null ? EmployeeRefDto.builder()
+                            .id(r.getReviewedById())
+                            .firstName(r.getReviewedByFirstName())
+                            .lastName(r.getReviewedByLastName())
+                            .build() : null)
+                    .reviewComment(r.getReviewComment())
+                    .createdAt(r.getCreatedAt().toInstant())
+                    .build();
+        }).toList();
+
+        return LeaveRequestPageDto.builder()
+                .items(dtos)
+                .nextCursor(nextCursor)
+                .hasMore(hasMore)
+                .size(size)
+                .build();
     }
 
     private LocalDate[] getCurrentLeaveCycle(LocalDate hireDate) {

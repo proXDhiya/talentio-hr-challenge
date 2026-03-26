@@ -11,10 +11,13 @@ import org.springframework.web.server.ResponseStatusException;
 import me.dhiya.hr.TestDataUtil;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.LeaveRequestEntity;
+import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.domain.enums.LeaveType;
 import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.dto.leave.request.CreateLeaveRequest;
+import me.dhiya.hr.dto.leave.response.LeaveRequestListItemDto;
+import me.dhiya.hr.dto.leave.response.LeaveRequestPageDto;
 import me.dhiya.hr.repositories.EmployeeRepository;
 import me.dhiya.hr.repositories.LeaveRequestRepository;
 import java.time.LocalDate;
@@ -190,6 +193,123 @@ public class LeaveRequestServiceTests {
         saveLeave(employee, cycleStart.plusDays(10), cycleStart.plusDays(12), LeaveStatus.APPROVED);
 
         assertThat(leaveRequestService.calculateUsedLeaveDays(employee)).isEqualTo(5);
+    }
+
+    @Test
+    void listLeaveRequestsReturnsEmptyWhenNoLeaves() {
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, null, null, null, null);
+
+        assertThat(result.getItems()).isEmpty();
+        assertThat(result.isHasMore()).isFalse();
+    }
+
+    @Test
+    void listLeaveRequestsReturnsItems() {
+        EmployeeEntity employee = savedEmployee();
+        saveLeave(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, null, null, null, null);
+
+        assertThat(result.getItems()).hasSize(1);
+    }
+
+    @Test
+    void listLeaveRequestsReturnsCorrectPageSizeAndHasMore() {
+        EmployeeEntity emp1 = savedEmployee();
+        EmployeeEntity emp2 = savedEmployee(25);
+        EmployeeEntity emp3 = savedEmployee(25);
+        saveLeave(emp1, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), LeaveStatus.PENDING);
+        saveLeave(emp2, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), LeaveStatus.PENDING);
+        saveLeave(emp3, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), LeaveStatus.PENDING);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 2, null, EmployeeStatus.ACTIVE, null, null, null, null);
+
+        assertThat(result.getItems()).hasSize(2);
+        assertThat(result.isHasMore()).isTrue();
+        assertThat(result.getNextCursor()).isNotNull();
+    }
+
+    @Test
+    void listLeaveRequestsFiltersByEmployeeId() {
+        EmployeeEntity emp1 = savedEmployee();
+        EmployeeEntity emp2 = savedEmployee(25);
+        saveLeave(emp1, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+        saveLeave(emp2, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, emp1.getId(), EmployeeStatus.ACTIVE, null, null, null, null);
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getEmployee().getId()).isEqualTo(emp1.getId());
+    }
+
+    @Test
+    void listLeaveRequestsFiltersByStatus() {
+        EmployeeEntity employee = savedEmployee();
+        saveLeave(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+        saveLeave(employee, LocalDate.now().plusDays(5), LocalDate.now().plusDays(7), LeaveStatus.APPROVED);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, LeaveStatus.PENDING, null, null, null);
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getStatus()).isEqualTo(LeaveStatus.PENDING);
+    }
+
+    @Test
+    void listLeaveRequestsFiltersByType() {
+        EmployeeEntity employee = savedEmployee();
+        saveLeave(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+        leaveRequestRepository.save(LeaveRequestEntity.builder()
+                .employee(employee)
+                .startDate(LocalDate.now().plusDays(5))
+                .endDate(LocalDate.now().plusDays(7))
+                .type(LeaveType.SICK)
+                .status(LeaveStatus.PENDING)
+                .build());
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, null, LeaveType.SICK, null, null);
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getType()).isEqualTo(LeaveType.SICK);
+    }
+
+    @Test
+    void listLeaveRequestsFiltersByFromDate() {
+        EmployeeEntity employee = savedEmployee();
+        saveLeave(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+        saveLeave(employee, LocalDate.now().plusDays(10), LocalDate.now().plusDays(12), LeaveStatus.PENDING);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, null, null, LocalDate.now().plusDays(8), null);
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getStartDate()).isEqualTo(LocalDate.now().plusDays(10));
+    }
+
+    @Test
+    void listLeaveRequestsFiltersByToDate() {
+        EmployeeEntity employee = savedEmployee();
+        saveLeave(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+        saveLeave(employee, LocalDate.now().plusDays(10), LocalDate.now().plusDays(12), LeaveStatus.PENDING);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, null, null, null, LocalDate.now().plusDays(5));
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getEndDate()).isEqualTo(LocalDate.now().plusDays(3));
+    }
+
+    @Test
+    void listLeaveRequestsReturnsCorrectItemFields() {
+        EmployeeEntity employee = savedEmployee();
+        saveLeave(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(5), LeaveStatus.PENDING);
+
+        LeaveRequestPageDto result = leaveRequestService.listLeaveRequests(null, 20, null, EmployeeStatus.ACTIVE, null, null, null, null);
+
+        LeaveRequestListItemDto item = result.getItems().get(0);
+        assertThat(item.getId()).isNotNull();
+        assertThat(item.getEmployee().getId()).isEqualTo(employee.getId());
+        assertThat(item.getTotalDays()).isEqualTo(5);
+        assertThat(item.getType()).isEqualTo(LeaveType.ANNUAL);
+        assertThat(item.getStatus()).isEqualTo(LeaveStatus.PENDING);
+        assertThat(item.getCreatedAt()).isNotNull();
     }
 
     private EmployeeEntity savedEmployee() {

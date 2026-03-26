@@ -5,6 +5,10 @@ PASS=0
 FAIL=0
 TOTAL=0
 
+echo "Waiting for app to be ready..."
+until curl -s "$BASE_URL/actuator/health" | grep -q '"status":"UP"'; do sleep 1; done
+echo "App is ready."
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -512,6 +516,143 @@ R=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/apis/v1/leave-requ
   -H "Content-Type: application/json" \
   -d "{\"startDate\":\"$IN_10_DAYS\",\"endDate\":\"$IN_15_DAYS\",\"type\":\"UNPAID\"}")
 assert "UNPAID leave ignores balance → 201" "201" "$R"
+
+# ─────────────────────────────────────────────
+section "LEAVE REQUESTS — LIST"
+# ─────────────────────────────────────────────
+
+# No token → 401
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests")
+assert "list leave requests no token → 401" "401" "$R"
+
+# Employee can list → 200 (open to all authenticated)
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $EMPLOYEE_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "list leave requests as EMPLOYEE → 200" "200" "$STATUS"
+HAS_ITEMS=$(echo "$BODY" | grep -o '"items":\[' | head -1)
+assert "list leave requests has items array" '"items":[' "$HAS_ITEMS"
+
+# Manager can list → 200
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests as MANAGER → 200" "200" "$R"
+
+# HR can list → 200
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $HR_TOKEN")
+assert "list leave requests as HR → 200" "200" "$R"
+
+# Returns submitted leaves
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "list leave requests returns data → 200" "200" "$STATUS"
+LIST_COUNT=$(echo "$BODY" | grep -o '"id"' | wc -l | tr -d ' ')
+assert "list leave requests returns items" "1" "$([ "$LIST_COUNT" -gt 0 ] && echo 1 || echo 0)"
+
+# Filter by status=PENDING
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests?status=PENDING" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "filter by status=PENDING → 200" "200" "$STATUS"
+STATUS_HIT=$(echo "$BODY" | grep -o '"status":"PENDING"' | head -1 | cut -d'"' -f4)
+assert "filtered results contain PENDING status" "PENDING" "$STATUS_HIT"
+
+# Filter by type=ANNUAL
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests?type=ANNUAL" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "filter by type=ANNUAL → 200" "200" "$STATUS"
+TYPE_HIT=$(echo "$BODY" | grep -o '"type":"ANNUAL"' | head -1 | cut -d'"' -f4)
+assert "filtered results contain ANNUAL type" "ANNUAL" "$TYPE_HIT"
+
+# Filter by type=SICK
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests?type=SICK" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "filter by type=SICK → 200" "200" "$STATUS"
+SICK_HIT=$(echo "$BODY" | grep -o '"type":"SICK"' | head -1 | cut -d'"' -f4)
+assert "filtered results contain SICK type" "SICK" "$SICK_HIT"
+
+# Filter by employeeId
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests?employeeId=$EMPLOYEE_ID" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "filter by employeeId → 200" "200" "$STATUS"
+EMP_HIT=$(echo "$BODY" | grep -o "\"id\":\"$EMPLOYEE_ID\"" | head -1 | cut -d'"' -f4)
+assert "filter by employeeId returns correct employee" "$EMPLOYEE_ID" "$EMP_HIT"
+
+# Pagination size=1 → hasMore true
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests?size=1" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "list leave requests size=1 → 200" "200" "$STATUS"
+HAS_MORE=$(echo "$BODY" | grep -o '"hasMore":true')
+assert "list leave requests hasMore=true with size=1" '"hasMore":true' "$HAS_MORE"
+NEXT_CURSOR=$(echo "$BODY" | grep -o '"nextCursor":"[^"]*"' | cut -d'"' -f4)
+assert "list leave requests has nextCursor" "1" "$([ -n "$NEXT_CURSOR" ] && echo 1 || echo 0)"
+
+# Next page with cursor returns results
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?size=1&cursor=$NEXT_CURSOR" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests with cursor → 200" "200" "$R"
+
+# Invalid status → 400
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?status=INVALID" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests invalid status → 400" "400" "$R"
+
+# Invalid type → 400
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?type=INVALID" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests invalid type → 400" "400" "$R"
+
+# Size exceeds max → 400
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?size=200" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests size too large → 400" "400" "$R"
+
+# Invalid cursor format → 400
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?cursor=not-a-uuid" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests invalid cursor → 400" "400" "$R"
+
+# Invalid employeeId format → 400
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?employeeId=not-a-uuid" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leave requests invalid employeeId → 400" "400" "$R"
+
+# Default employeeStatus=ACTIVE → returns leaves
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leaves default (ACTIVE employees) → 200" "200" "$R"
+
+# Explicit employeeStatus=ACTIVE → 200
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?employeeStatus=ACTIVE" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leaves employeeStatus=ACTIVE → 200" "200" "$R"
+
+# employeeStatus=INACTIVE → 200 (no items yet since no deactivated employees)
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests?employeeStatus=INACTIVE" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "list leaves employeeStatus=INACTIVE → 200" "200" "$STATUS"
+INACTIVE_COUNT=$(echo "$BODY" | grep -o '"id"' | wc -l | tr -d ' ')
+assert "no inactive employee leaves yet" "0" "$INACTIVE_COUNT"
+
+# Invalid employeeStatus → 400
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?employeeStatus=INVALID" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+assert "list leaves invalid employeeStatus → 400" "400" "$R"
 
 # ─────────────────────────────────────────────
 section "EMPLOYEES — DEACTIVATE"

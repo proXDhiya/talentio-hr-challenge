@@ -29,7 +29,7 @@ public class EmployeeDto {
     private String position;
     private BigDecimal salary;
     private CurrencyDto currency;
-    private ManagerDto manager;
+    private EmployeeRefDto manager;
     private LocalDate hireDate;
     private Integer annualLeaveDays;
     private Integer usedLeaveDays;

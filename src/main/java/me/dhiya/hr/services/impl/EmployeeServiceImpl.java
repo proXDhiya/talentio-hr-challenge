@@ -13,7 +13,7 @@ import me.dhiya.hr.dto.employee.request.CreateEmployeeRequest;
 import me.dhiya.hr.dto.employee.request.UpdateEmployeeRequest;
 import me.dhiya.hr.dto.employee.response.EmployeeListItemDto;
 import me.dhiya.hr.dto.employee.response.EmployeePageDto;
-import me.dhiya.hr.dto.employee.response.ManagerDto;
+import me.dhiya.hr.dto.employee.response.EmployeeRefDto;
 import me.dhiya.hr.repositories.CurrencyRepository;
 import me.dhiya.hr.repositories.EmployeeRepository;
 import me.dhiya.hr.services.EmployeeService;
@@ -121,10 +121,11 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .position(e.getPosition())
                 .status(e.getStatus().name())
                 .hireDate(e.getHireDate())
-                .manager(e.getManager() != null ? ManagerDto.builder()
+                .manager(e.getManager() != null ? EmployeeRefDto.builder()
                         .id(e.getManager().getId())
                         .firstName(e.getManager().getFirstName())
                         .lastName(e.getManager().getLastName())
+                        .department(e.getManager().getDepartment())
                         .build() : null)
                 .build()
         ).toList();

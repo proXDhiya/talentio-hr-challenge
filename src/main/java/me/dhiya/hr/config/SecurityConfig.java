@@ -33,6 +33,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/apis/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/apis/v1/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/apis/v1/currencies").hasAnyRole("MANAGER", "HR")

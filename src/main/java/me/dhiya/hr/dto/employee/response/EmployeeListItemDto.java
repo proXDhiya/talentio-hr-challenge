@@ -25,5 +25,5 @@ public class EmployeeListItemDto {
     private String position;
     private String status;
     private LocalDate hireDate;
-    private ManagerDto manager;
+    private EmployeeRefDto manager;
 }

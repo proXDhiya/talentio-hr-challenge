@@ -12,15 +12,20 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.LeaveRequestEntity;
-import me.dhiya.hr.dto.employee.response.ManagerDto;
+import me.dhiya.hr.dto.employee.response.EmployeeRefDto;
 import me.dhiya.hr.dto.leave.request.CreateLeaveRequest;
+import me.dhiya.hr.dto.leave.request.LeaveListRequest;
 import me.dhiya.hr.dto.leave.response.LeaveRequestDto;
+import me.dhiya.hr.dto.leave.response.LeaveRequestListResponse;
+import me.dhiya.hr.dto.leave.response.LeaveRequestPageDto;
 import me.dhiya.hr.dto.leave.response.LeaveRequestResponse;
 import me.dhiya.hr.services.LeaveRequestService;
 import me.dhiya.hr.util.ApiExamples;
@@ -35,6 +40,35 @@ public class LeaveRequestController {
 
     public LeaveRequestController(LeaveRequestService leaveRequestService) {
         this.leaveRequestService = leaveRequestService;
+    }
+
+    @Operation(summary = "List leave requests", description = "Returns paginated leave requests with optional filters. Accessible to all authenticated users.")
+    @SecurityRequirement(name = "Bearer")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Leave requests retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = LeaveRequestListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Validation failed",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ApiExamples.VALIDATION_ERROR))),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ApiExamples.UNAUTHORIZED_PROFILE)))
+    })
+    @GetMapping(produces = "application/json")
+    public ResponseEntity<LeaveRequestListResponse> listLeaveRequests(
+            @ModelAttribute @Valid LeaveListRequest request) {
+        LeaveRequestPageDto page = leaveRequestService.listLeaveRequests(
+                request.getCursor(), request.getSize(), request.getEmployeeId(),
+                request.getEmployeeStatus(), request.getStatus(), request.getType(),
+                request.getFromDate(), request.getToDate()
+        );
+
+        return ResponseEntity.ok(LeaveRequestListResponse.builder()
+                .message("Leave requests retrieved successfully")
+                .data(page)
+                .timestamp(Instant.now())
+                .build());
     }
 
     @Operation(summary = "Submit leave request", description = "Submits a new leave request for the authenticated employee.")
@@ -75,7 +109,7 @@ public class LeaveRequestController {
 
         return LeaveRequestDto.builder()
                 .id(entity.getId())
-                .employee(ManagerDto.builder()
+                .employee(EmployeeRefDto.builder()
                         .id(entity.getEmployee().getId())
                         .firstName(entity.getEmployee().getFirstName())
                         .lastName(entity.getEmployee().getLastName())

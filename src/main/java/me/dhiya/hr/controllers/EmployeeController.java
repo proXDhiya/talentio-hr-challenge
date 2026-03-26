@@ -22,7 +22,7 @@ import me.dhiya.hr.dto.employee.response.EmployeeDto;
 import me.dhiya.hr.dto.employee.response.EmployeeListResponse;
 import me.dhiya.hr.dto.employee.response.EmployeePageDto;
 import me.dhiya.hr.dto.employee.response.EmployeeResponse;
-import me.dhiya.hr.dto.employee.response.ManagerDto;
+import me.dhiya.hr.dto.employee.response.EmployeeRefDto;
 import me.dhiya.hr.services.EmployeeService;
 import me.dhiya.hr.services.LeaveRequestService;
 import me.dhiya.hr.util.ApiExamples;
@@ -238,10 +238,11 @@ public class EmployeeController {
                         .code(e.getCurrency().getCode())
                         .symbol(e.getCurrency().getSymbol())
                         .build() : null)
-                .manager(e.getManager() != null ? ManagerDto.builder()
+                .manager(e.getManager() != null ? EmployeeRefDto.builder()
                         .id(e.getManager().getId())
                         .firstName(e.getManager().getFirstName())
                         .lastName(e.getManager().getLastName())
+                        .department(e.getManager().getDepartment())
                         .build() : null)
                 .hireDate(e.getHireDate())
                 .annualLeaveDays(e.getAnnualLeaveDays())
