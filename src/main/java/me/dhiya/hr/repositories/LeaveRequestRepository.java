@@ -11,6 +11,7 @@ import me.dhiya.hr.repositories.projections.LeaveDateRange;
 import me.dhiya.hr.repositories.projections.LeaveRequestRow;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LeaveRequestRepository extends CrudRepository<LeaveRequestEntity, String> {
@@ -31,6 +32,7 @@ public interface LeaveRequestRepository extends CrudRepository<LeaveRequestEntit
                 lr.reason          AS reason,
                 lr.review_comment  AS reviewComment,
                 lr.created_at      AS createdAt,
+                lr.updated_at      AS updatedAt,
                 e.id               AS employeeId,
                 e.first_name       AS employeeFirstName,
                 e.last_name        AS employeeLastName,
@@ -65,6 +67,31 @@ public interface LeaveRequestRepository extends CrudRepository<LeaveRequestEntit
             @Param("cursor") String cursor,
             @Param("limit") int limit
     );
+
+    @Query(value = """
+            SELECT
+                lr.id              AS id,
+                lr.start_date      AS startDate,
+                lr.end_date        AS endDate,
+                lr.type            AS type,
+                lr.status          AS status,
+                lr.reason          AS reason,
+                lr.review_comment  AS reviewComment,
+                lr.created_at      AS createdAt,
+                lr.updated_at      AS updatedAt,
+                e.id               AS employeeId,
+                e.first_name       AS employeeFirstName,
+                e.last_name        AS employeeLastName,
+                e.department       AS employeeDepartment,
+                r.id               AS reviewedById,
+                r.first_name       AS reviewedByFirstName,
+                r.last_name        AS reviewedByLastName
+            FROM leave_requests lr
+            LEFT JOIN employees e ON e.id = lr.employee_id
+            LEFT JOIN employees r ON r.id = lr.reviewed_by
+            WHERE lr.id = :id
+            """, nativeQuery = true)
+    Optional<LeaveRequestRow> findLeaveRequestById(@Param("id") String id);
 
     @Query("SELECT l.startDate as startDate, l.endDate as endDate " +
            "FROM LeaveRequestEntity l " +

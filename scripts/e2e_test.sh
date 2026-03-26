@@ -655,6 +655,192 @@ R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests?emp
 assert "list leaves invalid employeeStatus → 400" "400" "$R"
 
 # ─────────────────────────────────────────────
+section "LEAVE REQUESTS — GET BY ID"
+# ─────────────────────────────────────────────
+
+# No token → 401
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID")
+assert "get leave by id no token → 401" "401" "$R"
+
+# Manager can get → 200
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "get leave by id as MANAGER → 200" "200" "$STATUS"
+assert "get leave by id returns message" "Leave request retrieved successfully" "$(echo "$BODY" | grep -o '"message":"[^"]*"' | cut -d'"' -f4)"
+
+# HR can get → 200
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID" \
+  -H "Authorization: Bearer $HR_TOKEN")
+assert "get leave by id as HR → 200" "200" "$R"
+
+# Employee can get their own → 200
+R=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID" \
+  -H "Authorization: Bearer $EMPLOYEE_TOKEN")
+assert "get leave by id as owner EMPLOYEE → 200" "200" "$R"
+
+# Employee cannot get someone else's → 403
+OTHER_EMP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/apis/v1/employees" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"firstName":"Other","lastName":"Employee","email":"other@company.com","password":"Pass1234!","role":"EMPLOYEE","department":"IT","position":"Dev","salary":2000,"currencyCode":"USD","hireDate":"2024-01-01"}' | head -1)
+OTHER_EMP_TOKEN=$(curl -s -X POST "$BASE_URL/apis/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"other@company.com","password":"Pass1234!"}' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID" \
+  -H "Authorization: Bearer $OTHER_EMP_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "get leave by id as non-owner EMPLOYEE → 403" "403" "$STATUS"
+assert "get leave by id 403 message" "Access denied. You can only view your own leave requests." "$(echo "$BODY" | grep -o '"message":"[^"]*"' | cut -d'"' -f4)"
+
+# Not found → 404
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests/00000000-0000-0000-0000-000000000000" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "get leave by id not found → 404" "404" "$STATUS"
+assert "get leave by id 404 message" "Leave request not found" "$(echo "$BODY" | grep -o '"message":"[^"]*"' | cut -d'"' -f4)"
+
+# Correct fields returned
+R=$(curl -s -w "\n%{http_code}" "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID" \
+  -H "Authorization: Bearer $MANAGER_TOKEN")
+BODY=$(echo "$R" | head -1)
+assert "get leave by id has id field" "1" "$(echo "$BODY" | grep -o '"id"' | wc -l | tr -d ' ' | awk '{print ($1 >= 1) ? 1 : 0}')"
+assert "get leave by id has employee" "1" "$(echo "$BODY" | grep -q '"employee"' && echo 1 || echo 0)"
+assert "get leave by id has totalDays" "1" "$(echo "$BODY" | grep -q '"totalDays"' && echo 1 || echo 0)"
+assert "get leave by id has createdAt" "1" "$(echo "$BODY" | grep -q '"createdAt"' && echo 1 || echo 0)"
+
+# ─────────────────────────────────────────────
+section "LEAVE REQUESTS — APPROVE"
+# ─────────────────────────────────────────────
+
+# No token → 401
+R=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID/approve" \
+  -H "Content-Type: application/json" -d '{}')
+assert "approve no token → 401" "401" "$R"
+
+# Employee cannot approve → 403
+R=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID/approve" \
+  -H "Authorization: Bearer $EMPLOYEE_TOKEN" \
+  -H "Content-Type: application/json" -d '{}')
+assert "approve as EMPLOYEE → 403" "403" "$R"
+
+# Manager cannot approve outside team → 403
+# Create an employee via HR token (manager = Carol HR, not Alice MANAGER)
+OTHER_EMP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/apis/v1/employees" \
+  -H "Authorization: Bearer $HR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"firstName":"Dave","lastName":"Outsider","email":"outsider@company.com","password":"Pass1234!","role":"EMPLOYEE","department":"IT","position":"Dev","salary":2000,"currencyCode":"USD","hireDate":"2024-01-01"}')
+OTHER_EMP_ID=$(echo "$OTHER_EMP" | head -1 | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+OTHER_EMP_TOKEN=$(curl -s -X POST "$BASE_URL/apis/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"outsider@company.com","password":"Pass1234!"}' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+OTHER_LEAVE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $OTHER_EMP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"ANNUAL","startDate":"2026-06-01","endDate":"2026-06-03","reason":"Holiday"}')
+OTHER_LEAVE_ID=$(echo "$OTHER_LEAVE" | head -1 | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+R=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$OTHER_LEAVE_ID/approve" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{}')
+assert "approve outside team as MANAGER → 403" "403" "$R"
+
+# HR can approve any → 200
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$OTHER_LEAVE_ID/approve" \
+  -H "Authorization: Bearer $HR_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"Approved!"}')
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "approve as HR → 200" "200" "$STATUS"
+assert "approved status = APPROVED" "APPROVED" "$(echo "$BODY" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)"
+assert "approved reviewComment set" "Approved!" "$(echo "$BODY" | grep -o '"reviewComment":"[^"]*"' | cut -d'"' -f4)"
+
+# Cannot approve already approved → 422
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$OTHER_LEAVE_ID/approve" \
+  -H "Authorization: Bearer $HR_TOKEN" \
+  -H "Content-Type: application/json" -d '{}')
+STATUS=$(echo "$R" | tail -1)
+assert "approve already approved → 422" "422" "$STATUS"
+
+# Manager approves own team → 200
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$LEAVE_ID/approve" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"Enjoy!"}')
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "approve own team as MANAGER → 200" "200" "$STATUS"
+assert "manager approve sets reviewedBy" "1" "$(echo "$BODY" | grep -q '"reviewedBy"' && echo 1 || echo 0)"
+
+# ─────────────────────────────────────────────
+section "LEAVE REQUESTS — REJECT"
+# ─────────────────────────────────────────────
+
+# Submit a new leave to reject
+NEW_LEAVE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $EMPLOYEE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"SICK","startDate":"2026-07-01","endDate":"2026-07-02","reason":"Ill"}')
+NEW_LEAVE_ID=$(echo "$NEW_LEAVE" | head -1 | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+# No token → 401
+R=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$NEW_LEAVE_ID/reject" \
+  -H "Content-Type: application/json" -d '{"comment":"No."}')
+assert "reject no token → 401" "401" "$R"
+
+# Employee cannot reject → 403
+R=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$NEW_LEAVE_ID/reject" \
+  -H "Authorization: Bearer $EMPLOYEE_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"No."}')
+assert "reject as EMPLOYEE → 403" "403" "$R"
+
+# Missing comment → 400
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$NEW_LEAVE_ID/reject" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{}')
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "reject missing comment → 400" "400" "$STATUS"
+assert "reject missing comment error field" "comment" "$(echo "$BODY" | grep -o '"field":"[^"]*"' | head -1 | cut -d'"' -f4)"
+
+# Manager rejects own team → 200
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$NEW_LEAVE_ID/reject" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"Deadline conflict."}')
+STATUS=$(echo "$R" | tail -1)
+BODY=$(echo "$R" | head -1)
+assert "reject own team as MANAGER → 200" "200" "$STATUS"
+assert "rejected status = REJECTED" "REJECTED" "$(echo "$BODY" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)"
+assert "reject comment set" "Deadline conflict." "$(echo "$BODY" | grep -o '"reviewComment":"[^"]*"' | cut -d'"' -f4)"
+
+# Cannot reject already rejected → 422
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$NEW_LEAVE_ID/reject" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"Again."}')
+STATUS=$(echo "$R" | tail -1)
+assert "reject already rejected → 422" "422" "$STATUS"
+
+# Manager cannot reject outside team → 403
+# Submit a new leave for the outsider employee (manager = Carol HR, not Alice MANAGER)
+OUTSIDER_LEAVE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/apis/v1/leave-requests" \
+  -H "Authorization: Bearer $OTHER_EMP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"ANNUAL","startDate":"2026-08-01","endDate":"2026-08-02","reason":"Holiday"}')
+OUTSIDER_LEAVE_ID=$(echo "$OUTSIDER_LEAVE" | head -1 | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+R=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/$OUTSIDER_LEAVE_ID/reject" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"No."}')
+assert "reject outside team as MANAGER → 403" "403" "$R"
+
+# Not found → 404
+R=$(curl -s -w "\n%{http_code}" -X PATCH "$BASE_URL/apis/v1/leave-requests/00000000-0000-0000-0000-000000000000/reject" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -H "Content-Type: application/json" -d '{"comment":"No."}')
+STATUS=$(echo "$R" | tail -1)
+assert "reject not found → 404" "404" "$STATUS"
+
+# ─────────────────────────────────────────────
 section "EMPLOYEES — DEACTIVATE"
 # ─────────────────────────────────────────────
 

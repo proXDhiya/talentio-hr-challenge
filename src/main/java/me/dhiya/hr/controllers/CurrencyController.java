@@ -22,7 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/apis/v1/currencies")
-@Tag(name = "Currencies", description = "Currency management endpoints")
+@Tag(name = "Currencies", description = "Reference data for supported salary currencies. Used when creating or updating employees.")
 public class CurrencyController {
 
     private final CurrencyService currencyService;
@@ -31,7 +31,13 @@ public class CurrencyController {
         this.currencyService = currencyService;
     }
 
-    @Operation(summary = "List currencies", description = "Returns all available currencies. HR and Manager only.")
+    @Operation(
+            summary = "List currencies",
+            description = "Returns all seeded currency options: `DZD`, `EUR`, `USD`.\n\n" +
+                    "**Notes:**\n" +
+                    "* Use the returned `code` value when creating or updating an employee's salary currency\n" +
+                    "* Accessible by **MANAGER** and **HR** roles only"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Currencies retrieved successfully",

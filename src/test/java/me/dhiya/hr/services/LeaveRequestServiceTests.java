@@ -16,8 +16,10 @@ import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.domain.enums.LeaveType;
 import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.dto.leave.request.CreateLeaveRequest;
+import me.dhiya.hr.dto.leave.response.LeaveRequestDto;
 import me.dhiya.hr.dto.leave.response.LeaveRequestListItemDto;
 import me.dhiya.hr.dto.leave.response.LeaveRequestPageDto;
+import me.dhiya.hr.dto.leave.response.LeaveReviewDto;
 import me.dhiya.hr.repositories.EmployeeRepository;
 import me.dhiya.hr.repositories.LeaveRequestRepository;
 import java.time.LocalDate;
@@ -312,6 +314,121 @@ public class LeaveRequestServiceTests {
         assertThat(item.getCreatedAt()).isNotNull();
     }
 
+    @Test
+    void getLeaveRequestByIdReturnsLeave() {
+        EmployeeEntity employee = savedEmployee();
+        LeaveRequestEntity leave = saveLeaveAndReturn(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(5), LeaveStatus.PENDING);
+
+        LeaveRequestDto result = leaveRequestService.getLeaveRequestById(leave.getId(), employee);
+
+        assertThat(result.getId()).isEqualTo(leave.getId());
+        assertThat(result.getEmployee().getId()).isEqualTo(employee.getId());
+        assertThat(result.getTotalDays()).isEqualTo(5);
+        assertThat(result.getType()).isEqualTo(LeaveType.ANNUAL);
+        assertThat(result.getStatus()).isEqualTo(LeaveStatus.PENDING);
+        assertThat(result.getCreatedAt()).isNotNull();
+    }
+
+    @Test
+    void getLeaveRequestByIdThrows404WhenNotFound() {
+        EmployeeEntity employee = savedEmployee();
+
+        assertThatThrownBy(() -> leaveRequestService.getLeaveRequestById("00000000-0000-0000-0000-000000000000", employee))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Leave request not found");
+    }
+
+    @Test
+    void getLeaveRequestByIdThrows403WhenEmployeeViewsOthersLeave() {
+        EmployeeEntity owner = savedEmployee();
+        EmployeeEntity other = savedEmployee();
+        LeaveRequestEntity leave = saveLeaveAndReturn(owner, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+
+        assertThatThrownBy(() -> leaveRequestService.getLeaveRequestById(leave.getId(), other))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Access denied");
+    }
+
+    @Test
+    void getLeaveRequestByIdAllowsManagerToViewAnyLeave() {
+        EmployeeEntity employee = savedEmployee();
+        EmployeeEntity manager = savedEmployee();
+        manager.setRole(Role.MANAGER);
+        employeeRepository.save(manager);
+        LeaveRequestEntity leave = saveLeaveAndReturn(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+
+        LeaveRequestDto result = leaveRequestService.getLeaveRequestById(leave.getId(), manager);
+
+        assertThat(result.getId()).isEqualTo(leave.getId());
+    }
+
+    @Test
+    void approveLeaveRequestSetsStatusAndReviewedBy() {
+        EmployeeEntity hr = savedHr();
+        EmployeeEntity employee = savedEmployee();
+        LeaveRequestEntity leave = saveLeaveAndReturn(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+
+        LeaveReviewDto result = leaveRequestService.approveLeaveRequest(leave.getId(), "Approved!", hr);
+
+        assertThat(result.getStatus()).isEqualTo(LeaveStatus.APPROVED);
+        assertThat(result.getReviewedBy().getId()).isEqualTo(hr.getId());
+        assertThat(result.getReviewComment()).isEqualTo("Approved!");
+        assertThat(result.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void approveLeaveRequestThrows404WhenNotFound() {
+        EmployeeEntity hr = savedHr();
+
+        assertThatThrownBy(() -> leaveRequestService.approveLeaveRequest("00000000-0000-0000-0000-000000000000", null, hr))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Leave request not found");
+    }
+
+    @Test
+    void approveLeaveRequestThrows422WhenAlreadyApproved() {
+        EmployeeEntity hr = savedHr();
+        EmployeeEntity employee = savedEmployee();
+        LeaveRequestEntity leave = saveLeaveAndReturn(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.APPROVED);
+
+        assertThatThrownBy(() -> leaveRequestService.approveLeaveRequest(leave.getId(), null, hr))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Cannot approve a leave request that is already APPROVED");
+    }
+
+    @Test
+    void rejectLeaveRequestSetsStatusAndComment() {
+        EmployeeEntity hr = savedHr();
+        EmployeeEntity employee = savedEmployee();
+        LeaveRequestEntity leave = saveLeaveAndReturn(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.PENDING);
+
+        LeaveReviewDto result = leaveRequestService.rejectLeaveRequest(leave.getId(), "Deadline conflict.", hr);
+
+        assertThat(result.getStatus()).isEqualTo(LeaveStatus.REJECTED);
+        assertThat(result.getReviewComment()).isEqualTo("Deadline conflict.");
+        assertThat(result.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void rejectLeaveRequestThrows422WhenAlreadyRejected() {
+        EmployeeEntity hr = savedHr();
+        EmployeeEntity employee = savedEmployee();
+        LeaveRequestEntity leave = saveLeaveAndReturn(employee, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), LeaveStatus.REJECTED);
+
+        assertThatThrownBy(() -> leaveRequestService.rejectLeaveRequest(leave.getId(), "No.", hr))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Cannot reject a leave request that is already REJECTED");
+    }
+
+    private EmployeeEntity savedHr() {
+        EmployeeEntity hr = TestDataUtil.createEmployee();
+        hr.setPassword(passwordEncoder.encode(hr.getPassword()));
+        hr.setRole(Role.HR);
+        hr.setHireDate(LocalDate.now().minusYears(1));
+        hr.setAnnualLeaveDays(30);
+        return employeeRepository.save(hr);
+    }
+
     private EmployeeEntity savedEmployee() {
         return savedEmployee(30);
     }
@@ -336,6 +453,16 @@ public class LeaveRequestServiceTests {
 
     private void saveLeave(EmployeeEntity employee, LocalDate start, LocalDate end, LeaveStatus status) {
         leaveRequestRepository.save(LeaveRequestEntity.builder()
+                .employee(employee)
+                .startDate(start)
+                .endDate(end)
+                .type(LeaveType.ANNUAL)
+                .status(status)
+                .build());
+    }
+
+    private LeaveRequestEntity saveLeaveAndReturn(EmployeeEntity employee, LocalDate start, LocalDate end, LeaveStatus status) {
+        return leaveRequestRepository.save(LeaveRequestEntity.builder()
                 .employee(employee)
                 .startDate(start)
                 .endDate(end)

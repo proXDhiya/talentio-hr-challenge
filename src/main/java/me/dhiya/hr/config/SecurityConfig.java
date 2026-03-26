@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/apis/v1/employees/*").hasAnyRole("MANAGER", "HR")
                 .requestMatchers(HttpMethod.DELETE, "/apis/v1/employees/*").hasAnyRole("MANAGER", "HR")
                 .requestMatchers(HttpMethod.POST, "/apis/v1/employees").hasAnyRole("MANAGER", "HR")
+                .requestMatchers(HttpMethod.PATCH, "/apis/v1/leave-requests/*/approve").hasAnyRole("MANAGER", "HR")
+                .requestMatchers(HttpMethod.PATCH, "/apis/v1/leave-requests/*/reject").hasAnyRole("MANAGER", "HR")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

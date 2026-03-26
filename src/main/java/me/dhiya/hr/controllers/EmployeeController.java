@@ -30,7 +30,7 @@ import java.time.Instant;
 
 @RestController
 @RequestMapping("/apis/v1/employees")
-@Tag(name = "Employees", description = "Employee management endpoints")
+@Tag(name = "Employees", description = "Create, read, update, and deactivate employee accounts. Most actions require MANAGER or HR role.")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
@@ -41,7 +41,16 @@ public class EmployeeController {
         this.leaveRequestService = leaveRequestService;
     }
 
-    @Operation(summary = "List employees", description = "Returns paginated employee list with optional filters. HR and Manager only.")
+    @Operation(
+            summary = "List employees",
+            description = "Returns a cursor-paginated list of employees. Page size defaults to `20`, max `100`.\n\n" +
+                    "**Filters:**\n" +
+                    "* `role` - filter by role: `EMPLOYEE`, `MANAGER`, `HR`\n" +
+                    "* `department` - exact department name\n" +
+                    "* `search` - partial match on first name or last name\n" +
+                    "* `includeInactive` - set to `true` to include deactivated employees (default: `false`)\n\n" +
+                    "**Access:** MANAGER and HR only"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Employees retrieved successfully",
@@ -71,7 +80,15 @@ public class EmployeeController {
                 .build());
     }
 
-    @Operation(summary = "Get employee by ID", description = "Returns a single employee's profile and leave balance. HR and Manager only.")
+    @Operation(
+            summary = "Get employee by ID",
+            description = "Returns a single employee's full profile.\n\n" +
+                    "**Includes:**\n" +
+                    "* Salary and currency\n" +
+                    "* Manager reference\n" +
+                    "* Annual leave allocation, used days, and remaining balance for the current cycle\n\n" +
+                    "**Access:** MANAGER and HR only"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Employee retrieved successfully",
@@ -99,7 +116,14 @@ public class EmployeeController {
                 .build());
     }
 
-    @Operation(summary = "Get my profile", description = "Returns the authenticated employee's profile and leave balance")
+    @Operation(
+            summary = "Get my profile",
+            description = "Returns the authenticated employee's own profile.\n\n" +
+                    "**Includes:**\n" +
+                    "* Salary, currency, and manager reference\n" +
+                    "* Annual leave allocation, used days, and remaining balance for the current cycle\n\n" +
+                    "**Access:** any authenticated user regardless of role"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Profile retrieved successfully",
@@ -120,7 +144,16 @@ public class EmployeeController {
                 .build());
     }
 
-    @Operation(summary = "Deactivate employee", description = "Soft deletes an employee by setting status to INACTIVE. HR can only deactivate employees, Manager can deactivate anyone.")
+    @Operation(
+            summary = "Deactivate employee",
+            description = "Soft-deletes an employee by setting their status to `INACTIVE`. No data is removed.\n\n" +
+                    "**Access rules:**\n" +
+                    "* **MANAGER** can deactivate any employee regardless of role\n" +
+                    "* **HR** can only deactivate employees with the `EMPLOYEE` role - returns `403` when targeting a MANAGER or another HR\n\n" +
+                    "**Notes:**\n" +
+                    "* Returns `409` if the employee is already `INACTIVE`\n" +
+                    "* Deactivated employees cannot log in"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Employee deactivated successfully",
@@ -157,7 +190,13 @@ public class EmployeeController {
                 .build());
     }
 
-    @Operation(summary = "Update employee", description = "Updates employee information. HR can only update employees, Manager can update anyone.")
+    @Operation(
+            summary = "Update employee",
+            description = "Partially updates an employee's profile. All fields are optional - only provided fields are updated.\n\n" +
+                    "**Access rules:**\n" +
+                    "* **MANAGER** can update any employee\n" +
+                    "* **HR** can only update employees with the `EMPLOYEE` role - returns `403` when targeting a MANAGER or another HR"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Employee updated successfully",
@@ -191,7 +230,15 @@ public class EmployeeController {
                 .build());
     }
 
-    @Operation(summary = "Create employee", description = "Creates a new employee. HR and Manager only.")
+    @Operation(
+            summary = "Create employee",
+            description = "Creates a new employee account.\n\n" +
+                    "**Notes:**\n" +
+                    "* The caller is automatically assigned as the new employee's manager\n" +
+                    "* `annualLeaveDays` defaults to `30` if not provided\n" +
+                    "* Returns `409` if the email is already in use\n\n" +
+                    "**Access:** MANAGER and HR only"
+    )
     @SecurityRequirement(name = "Bearer")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Employee created successfully",

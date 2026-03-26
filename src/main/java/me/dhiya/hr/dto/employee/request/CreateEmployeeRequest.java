@@ -38,10 +38,10 @@ public class CreateEmployeeRequest {
     @NotNull(message = "Role is required")
     private Role role;
 
-    @NotNull(message = "Department is required")
+    @NotBlank(message = "Department is required")
     private String department;
 
-    @NotNull(message = "Position is required")
+    @NotBlank(message = "Position is required")
     private String position;
 
     @NotNull(message = "Salary is required")

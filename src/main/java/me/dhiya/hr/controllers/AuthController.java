@@ -26,7 +26,7 @@ import java.time.Instant;
 
 @RestController
 @RequestMapping("/apis/v1/auth")
-@Tag(name = "Authentication", description = "Public authentication endpoints")
+@Tag(name = "Authentication", description = "Public endpoints for system setup and login. No token required.")
 public class AuthController {
 
     private final Mapper<EmployeeEntity, EmployeeDto> employeeMapper;
@@ -46,7 +46,14 @@ public class AuthController {
         this.jwtProperties = jwtProperties;
     }
 
-    @Operation(summary = "System Setup", description = "Creates the first HR admin. Disabled after first employee exists.")
+    @Operation(
+            summary = "System Setup",
+            description = "One-time bootstrap endpoint that creates the first MANAGER account.\n\n" +
+                    "**Notes:**\n" +
+                    "* Can only be called once - returns `409` if any employee already exists\n" +
+                    "* The created account is assigned the **MANAGER** role automatically\n" +
+                    "* Use the returned token or call `POST /auth/login` to authenticate"
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Setup successful"),
             @ApiResponse(responseCode = "400", description = "Validation failed",
@@ -70,7 +77,13 @@ public class AuthController {
                 buildAuthResponse("Setup successful", employeeService.setup(employee)));
     }
 
-    @Operation(summary = "Login", description = "Authenticate with email and password")
+    @Operation(
+            summary = "Login",
+            description = "Authenticate with email and password. Returns a Bearer JWT token valid for **15 minutes**.\n\n" +
+                    "**Notes:**\n" +
+                    "* Include the token in every request as: `Authorization: Bearer <token>`\n" +
+                    "* Returns `401` if credentials are wrong or the employee is deactivated"
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Login successful"),
             @ApiResponse(responseCode = "400", description = "Validation failed",

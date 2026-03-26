@@ -15,6 +15,7 @@ import me.dhiya.hr.domain.EmployeeEntity;
 import me.dhiya.hr.domain.enums.EmployeeStatus;
 import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.repositories.EmployeeRepository;
+import me.dhiya.hr.repositories.LeaveRequestRepository;
 import me.dhiya.hr.services.JwtService;
 import java.time.LocalDate;
 
@@ -25,6 +26,7 @@ public abstract class BaseControllerTest {
 
     @Autowired protected WebApplicationContext wac;
     @Autowired protected EmployeeRepository employeeRepository;
+    @Autowired protected LeaveRequestRepository leaveRequestRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JwtService jwtService;
 
@@ -55,6 +57,20 @@ public abstract class BaseControllerTest {
                 .department(department)
                 .hireDate(LocalDate.now())
                 .status(status != null ? status : EmployeeStatus.ACTIVE)
+                .build());
+    }
+
+    protected EmployeeEntity saveEmployeeWithManager(String firstName, String lastName, String email, EmployeeEntity manager) {
+        return employeeRepository.save(EmployeeEntity.builder()
+                .firstName(firstName)
+                .lastName(lastName)
+                .email(email)
+                .password(passwordEncoder.encode("Pass123!"))
+                .role(Role.EMPLOYEE)
+                .department("Engineering")
+                .hireDate(LocalDate.now())
+                .status(EmployeeStatus.ACTIVE)
+                .manager(manager)
                 .build());
     }
 

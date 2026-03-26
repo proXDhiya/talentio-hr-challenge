@@ -12,6 +12,7 @@ public interface LeaveRequestRow {
     String getReason();
     String getReviewComment();
     OffsetDateTime getCreatedAt();
+    OffsetDateTime getUpdatedAt();
     String getEmployeeId();
     String getEmployeeFirstName();
     String getEmployeeLastName();

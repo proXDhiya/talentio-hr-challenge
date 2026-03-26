@@ -73,6 +73,13 @@ public final class ApiExamples {
               "timestamp": "2026-03-25T10:00:00Z"
             }""";
 
+    public static final String LEAVE_INVALID_STATE = """
+            {
+              "message": "Cannot approve a leave request that is already APPROVED",
+              "errors": [],
+              "timestamp": "2026-03-25T10:00:00Z"
+            }""";
+
     public static final String LEAVE_OVERLAP = """
             {
               "message": "You already have a leave request overlapping these dates",

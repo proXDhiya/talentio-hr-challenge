@@ -1,6 +1,7 @@
 package me.dhiya.hr.dto.employee.request;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -38,6 +39,7 @@ public class UpdateEmployeeRequest {
     private String currencyCode;
 
     @Min(value = 1, message = "Annual leave days must be at least 1")
+    @Max(value = 365, message = "Annual leave days cannot exceed 365")
     private Integer annualLeaveDays;
 
     @Pattern(regexp = ValidationConstants.UUID_REGEX, message = "Manager ID must be a valid UUID")

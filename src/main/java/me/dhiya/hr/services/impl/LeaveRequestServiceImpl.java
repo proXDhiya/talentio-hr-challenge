@@ -10,9 +10,13 @@ import me.dhiya.hr.domain.enums.LeaveStatus;
 import me.dhiya.hr.domain.enums.LeaveType;
 import me.dhiya.hr.dto.common.CustomFieldError;
 import me.dhiya.hr.dto.employee.response.EmployeeRefDto;
+import me.dhiya.hr.domain.enums.Role;
 import me.dhiya.hr.dto.leave.request.CreateLeaveRequest;
+import me.dhiya.hr.dto.leave.response.LeaveRequestDto;
+import org.springframework.web.server.ResponseStatusException;
 import me.dhiya.hr.dto.leave.response.LeaveRequestListItemDto;
 import me.dhiya.hr.dto.leave.response.LeaveRequestPageDto;
+import me.dhiya.hr.dto.leave.response.LeaveReviewDto;
 import me.dhiya.hr.exception.BusinessException;
 import me.dhiya.hr.repositories.LeaveRequestRepository;
 import me.dhiya.hr.repositories.projections.LeaveRequestRow;
@@ -82,6 +86,42 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
     @Override
     @Transactional(readOnly = true)
+    public LeaveRequestDto getLeaveRequestById(String id, EmployeeEntity currentUser) {
+        LeaveRequestRow r = leaveRequestRepository.findLeaveRequestById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
+
+        if (currentUser.getRole() == Role.EMPLOYEE && !currentUser.getId().equals(r.getEmployeeId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied. You can only view your own leave requests.");
+        }
+
+        int totalDays = (int) (r.getEndDate().toEpochDay() - r.getStartDate().toEpochDay() + 1);
+        return LeaveRequestDto.builder()
+                .id(r.getId())
+                .employee(r.getEmployeeId() != null ? EmployeeRefDto.builder()
+                        .id(r.getEmployeeId())
+                        .firstName(r.getEmployeeFirstName())
+                        .lastName(r.getEmployeeLastName())
+                        .department(r.getEmployeeDepartment())
+                        .build() : null)
+                .startDate(r.getStartDate())
+                .endDate(r.getEndDate())
+                .totalDays(totalDays)
+                .type(LeaveType.valueOf(r.getType()))
+                .status(LeaveStatus.valueOf(r.getStatus()))
+                .reason(r.getReason())
+                .reviewedBy(r.getReviewedById() != null ? EmployeeRefDto.builder()
+                        .id(r.getReviewedById())
+                        .firstName(r.getReviewedByFirstName())
+                        .lastName(r.getReviewedByLastName())
+                        .build() : null)
+                .reviewComment(r.getReviewComment())
+                .createdAt(r.getCreatedAt().toInstant())
+                .updatedAt(r.getUpdatedAt() != null ? r.getUpdatedAt().toInstant() : null)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public int calculateUsedLeaveDays(EmployeeEntity employee) {
         LocalDate[] cycle = getCurrentLeaveCycle(employee.getHireDate());
         return leaveRequestRepository
@@ -89,6 +129,62 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 .stream()
                 .mapToInt(r -> (int) (r.getEndDate().toEpochDay() - r.getStartDate().toEpochDay() + 1))
                 .sum();
+    }
+
+    @Override
+    @Transactional
+    public LeaveReviewDto approveLeaveRequest(String id, String comment, EmployeeEntity currentUser) {
+        LeaveRequestEntity leave = findPendingLeave(id, currentUser, "approve");
+        leave.setStatus(LeaveStatus.APPROVED);
+        leave.setReviewedBy(currentUser);
+        leave.setReviewComment(comment);
+        leaveRequestRepository.save(leave);
+        return toReviewDto(leave);
+    }
+
+    @Override
+    @Transactional
+    public LeaveReviewDto rejectLeaveRequest(String id, String comment, EmployeeEntity currentUser) {
+        LeaveRequestEntity leave = findPendingLeave(id, currentUser, "reject");
+        leave.setStatus(LeaveStatus.REJECTED);
+        leave.setReviewedBy(currentUser);
+        leave.setReviewComment(comment);
+        leaveRequestRepository.save(leave);
+        return toReviewDto(leave);
+    }
+
+    private LeaveRequestEntity findPendingLeave(String id, EmployeeEntity currentUser, String action) {
+        LeaveRequestEntity leave = leaveRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
+
+        if (leave.getStatus() != LeaveStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Cannot " + action + " a leave request that is already " + leave.getStatus());
+        }
+
+        if (currentUser.getRole() == Role.MANAGER) {
+            EmployeeEntity manager = leave.getEmployee().getManager();
+            if (manager == null || !manager.getId().equals(currentUser.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Access denied. You can only " + action + " requests from your team members.");
+            }
+        }
+
+        return leave;
+    }
+
+    private LeaveReviewDto toReviewDto(LeaveRequestEntity leave) {
+        return LeaveReviewDto.builder()
+                .id(leave.getId())
+                .status(leave.getStatus())
+                .reviewedBy(EmployeeRefDto.builder()
+                        .id(leave.getReviewedBy().getId())
+                        .firstName(leave.getReviewedBy().getFirstName())
+                        .lastName(leave.getReviewedBy().getLastName())
+                        .build())
+                .reviewComment(leave.getReviewComment())
+                .updatedAt(leave.getUpdatedAt())
+                .build();
     }
 
     @Override
