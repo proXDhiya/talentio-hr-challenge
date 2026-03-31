@@ -115,8 +115,8 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                         .lastName(r.getReviewedByLastName())
                         .build() : null)
                 .reviewComment(r.getReviewComment())
-                .createdAt(r.getCreatedAt().toInstant())
-                .updatedAt(r.getUpdatedAt() != null ? r.getUpdatedAt().toInstant() : null)
+                .createdAt(r.getCreatedAt())
+                .updatedAt(r.getUpdatedAt())
                 .build();
     }
 
@@ -226,7 +226,7 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                             .lastName(r.getReviewedByLastName())
                             .build() : null)
                     .reviewComment(r.getReviewComment())
-                    .createdAt(r.getCreatedAt().toInstant())
+                    .createdAt(r.getCreatedAt())
                     .build();
         }).toList();
 

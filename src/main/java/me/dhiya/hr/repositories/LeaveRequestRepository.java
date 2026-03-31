@@ -46,8 +46,8 @@ public interface LeaveRequestRepository extends CrudRepository<LeaveRequestEntit
             WHERE (:employeeId IS NULL OR lr.employee_id = :employeeId)
               AND (:status IS NULL OR lr.status = :status)
               AND (:type IS NULL OR lr.type = :type)
-              AND (:fromDate IS NULL OR lr.start_date >= :fromDate)
-              AND (:toDate IS NULL OR lr.end_date <= :toDate)
+              AND (CAST(:fromDate AS date) IS NULL OR lr.start_date >= CAST(:fromDate AS date))
+              AND (CAST(:toDate AS date) IS NULL OR lr.end_date <= CAST(:toDate AS date))
               AND (:cursor IS NULL OR EXISTS (
                    SELECT 1 FROM leave_requests clr
                    WHERE clr.id = :cursor

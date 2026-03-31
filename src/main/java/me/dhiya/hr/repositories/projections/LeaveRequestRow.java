@@ -1,7 +1,7 @@
 package me.dhiya.hr.repositories.projections;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 
 public interface LeaveRequestRow {
     String getId();
@@ -11,8 +11,8 @@ public interface LeaveRequestRow {
     String getStatus();
     String getReason();
     String getReviewComment();
-    OffsetDateTime getCreatedAt();
-    OffsetDateTime getUpdatedAt();
+    Instant getCreatedAt();
+    Instant getUpdatedAt();
     String getEmployeeId();
     String getEmployeeFirstName();
     String getEmployeeLastName();
